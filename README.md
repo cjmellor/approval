@@ -6,7 +6,9 @@
 [![GitHub Code Style Action Status](https://img.shields.io/github/workflow/status/cjmellor/approval/Check%20&%20fix%20styling?label=code%20style)](https://github.com/cjmellor/approval/actions?query=workflow%3A"Check+%26+fix+styling"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/cjmellor/approval.svg?style=flat-square)](https://packagist.org/packages/cjmellor/approval)
 
-Approval is a Laravel package that provides a simple way to approve or deny new Model data before it is persisted.
+Approval is a Laravel package that provides a simple way to approve new Model data before it is persisted.
+
+![](https://banners.beyondco.de/Approval.png?theme=light&packageManager=composer+require&packageName=cjmellor%2Fapproval&pattern=brickWall&style=style_2&description=Approve+new+Model+data+before+it+is+persisted&md=1&showWatermark=0&fontSize=100px&images=check-circle&widths=300&heights=300)
 
 ## Installation
 
