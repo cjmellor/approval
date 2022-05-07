@@ -22,8 +22,8 @@ trait MustBeApproved
             }
 
             $model->approvals()->create([
-                'new_data' => $model->when($model->wasChanged(), fn() => $model->getChanges()),
-                'original_data' => $model->when($model->wasChanged(), fn() => $model->getOriginalMatchingChanges()),
+                'new_data' => $model->when($model->wasChanged(), fn () => $model->getChanges()),
+                'original_data' => $model->when($model->wasChanged(), fn () => $model->getOriginalMatchingChanges()),
             ]);
         });
     }

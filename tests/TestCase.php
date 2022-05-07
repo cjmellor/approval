@@ -2,9 +2,9 @@
 
 namespace Cjmellor\Approval\Tests;
 
+use Cjmellor\Approval\ApprovalServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Cjmellor\Approval\ApprovalServiceProvider;
 
 class TestCase extends Orchestra
 {
