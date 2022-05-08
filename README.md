@@ -1,5 +1,5 @@
 
-# Approve or Deny new Model data before it is persisted
+# Approve new Model data before it is persisted
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/cjmellor/approval.svg?style=flat-square)](https://packagist.org/packages/cjmellor/approval)
 [![GitHub Tests Action Status](https://img.shields.io/github/workflow/status/cjmellor/approval/run-tests?label=tests)](https://github.com/cjmellor/approval/actions?query=workflow%3Arun-tests+branch%3Amain)
