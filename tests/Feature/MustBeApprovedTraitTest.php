@@ -12,7 +12,8 @@ beforeEach(function () {
         'original_data' => '{"name":"Bob"}',
     ];
 });
-it('stores the data correctly in the database')
+
+it(description: 'stores the data correctly in the database')
     ->tap(
         fn () => Approval::create($this->approvalData)
     )->assertDatabaseHas('approvals', [

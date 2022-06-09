@@ -12,8 +12,8 @@ class Approval extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'new_data' => AsArrayObject::class,
-        'original_data' => AsArrayObject::class,
+        "{config('approval.approval.new_data')}" => AsArrayObject::class,
+        "{config('approval.approval.original_data')}" => AsArrayObject::class,
         'state' => ApprovalStatus::class,
     ];
 
