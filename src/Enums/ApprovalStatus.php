@@ -2,9 +2,9 @@
 
 namespace Cjmellor\Approval\Enums;
 
-enum ApprovalStatus: int
+enum ApprovalStatus: string
 {
-    case Pending = 0;
-    case Approved = 1;
-    case Rejected = 2;
+    case Pending = 'pending';
+    case Approved = 'approved';
+    case Rejected = 'rejected';
 }
