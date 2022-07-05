@@ -17,6 +17,9 @@ class TestCase extends Orchestra
         $this->loadLaravelMigrations();
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
+        // Use this for the FakeModel in tests.
+        $this->loadMigrationsFrom(__DIR__.'/database/migrations');
     }
 
     protected function getPackageProviders($app): array
