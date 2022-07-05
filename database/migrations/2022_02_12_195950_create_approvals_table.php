@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class() extends Migration {
     public function up()
     {
-        Schema::create('approvals', function (Blueprint $table) {
+        Schema::create(table: 'approvals', callback: function (Blueprint $table) {
             $table->id();
             $table->nullableMorphs(config(key: 'approval.approval.approval_pivot'));
             $table->enum('state', ['pending', 'approved', 'rejected'])->default('pending');
