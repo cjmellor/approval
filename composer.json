@@ -21,6 +21,7 @@
         "illuminate/contracts": "^9.0"
     },
     "require-dev": {
+        "laravel/pint": "^0.1.7",
         "nunomaduro/collision": "^6.0",
         "orchestra/testbench": "^7.0",
         "pestphp/pest": "^1.21",

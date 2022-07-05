@@ -36,22 +36,6 @@ This is the contents of the published config file:
 ```php
 return [
     'approval' => [
-
-        /**
-         * The column name for new data.
-         *
-         * Default: 'new_data'
-         */
-        'new_data' => 'new_data',
-
-
-        /**
-         * The column name for original data
-         *
-         * Default: 'original_data
-         */
-        'original_data' => 'original_data',
-
         /**
          * The approval polymorphic pivot name
          *
@@ -62,7 +46,7 @@ return [
 ];
 ```
 
-The config allows you to change the column names as well as the polymorphic pivot name. The latter should always end with `able` though.
+The config allows you to change the polymorphic pivot name. It should end with `able` though.
 
 ## Usage
 
@@ -106,6 +90,40 @@ If you want to check if the Model data will be bypassed, use the `isApprovalBypa
 ```php
 return $model->isApprovalBypassed();
 ```
+
+## Scopes
+
+The package comes with some helper methods for the Builder, utilising a custom scope - `ApprovalStateScope`
+
+By default, all queries to the `approvals` table will return all the Models' no matter the state. 
+
+There are three methods to help you retrieve the state of an Approval.
+
+```php
+<?php
+
+use App\Models\Approval;
+
+Approval::approved()->get();
+Approval::rejected()->get();
+Approval::pending()->count();
+```
+
+You can also set a state for an approval:
+
+```php
+<?php
+
+use App\Models\Approval;
+
+Approval::where('id', 1)->approve();
+Approval::where('id', 2)->reject();
+Approval::where('id', 3)->postpone();
+```
+
+In the event you need to reset a state, you can use the `withAnyState` helper.
+
+## Disable Approvals
 
 If you don't want Model data to be approved, you can bypass it with the `withoutApproval` method.
 
