@@ -22,8 +22,8 @@ trait MustBeApproved
             }
 
             $model->approvals()->create([
-                (string)config(key: 'approval.approval.new_data') => $model->when($model->wasChanged(), fn () => $model->getChanges()),
-                (string)config(key: 'approval.approval.original_data') => $model->when($model->wasChanged(), fn () => $model->getOriginalMatchingChanges()),
+                'new_data' => $model->getDirty(),
+                'original_data' => $model->getOriginalMatchingChanges(),
             ]);
         });
     }
@@ -35,7 +35,7 @@ trait MustBeApproved
 
     public function approvals(): MorphMany
     {
-        return $this->morphMany(related: Approval::class, name: config(key: 'approval.approval.approval_pivot'));
+        return $this->morphMany(related: Approval::class, name: 'approvalable');
     }
 
     protected function getOriginalMatchingChanges(): Collection

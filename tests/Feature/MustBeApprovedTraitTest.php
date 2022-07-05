@@ -8,8 +8,8 @@ beforeEach(function () {
         'approvalable_type' => 'App\Models\User',
         'approvalable_id' => 1,
         'state' => ApprovalStatus::Pending,
-        'new_data' => '{"name":"Chris"}',
-        'original_data' => '{"name":"Bob"}',
+        'new_data' => json_encode(['name' => 'Chris']),
+        'original_data' => json_encode(['name' => 'Bob']),
     ];
 });
 
