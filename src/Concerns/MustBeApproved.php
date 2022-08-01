@@ -43,14 +43,8 @@ trait MustBeApproved
      */
     protected static function approvalModelExists($model): bool
     {
-        $driver = Approval::make()->getConnection()->getConfig()['driver'] ?? 'sqlite';
-
-        if ($driver === 'sqlite') {
-            return Approval::where([
-                ['state', '=', ApprovalStatus::Pending],
-                ['new_data', '=', json_encode($model->getDirty())],
-                ['original_data', '=', json_encode($model->getOriginalMatchingChanges())],
-            ])->exists();
+        if ($model->make()->getConnection()->getConfig()['driver'] === 'sqlite') {
+            return self::checkDatabaseDriver($model);
         }
 
         return Approval::where('state', ApprovalStatus::Pending)
@@ -83,6 +77,19 @@ trait MustBeApproved
     public function isApprovalBypassed(): bool
     {
         return $this->bypassApproval;
+    }
+
+    /**
+     * @param $model
+     * @return bool
+     */
+    protected static function checkDatabaseDriver($model): bool
+    {
+        return Approval::where([
+            ['state', '=', ApprovalStatus::Pending],
+            ['new_data', '=', json_encode($model->getDirty())],
+            ['original_data', '=', json_encode($model->getOriginalMatchingChanges())],
+        ])->exists();
     }
 
     /**
