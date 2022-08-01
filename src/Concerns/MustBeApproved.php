@@ -43,6 +43,16 @@ trait MustBeApproved
      */
     protected static function approvalModelExists($model): bool
     {
+        $driver = Approval::make()->getConnection()->getConfig()['driver'] ?? 'sqlite';
+
+        if ($driver === 'sqlite') {
+            return Approval::where([
+                ['state', '=', ApprovalStatus::Pending],
+                ['new_data', '=', json_encode($model->getDirty())],
+                ['original_data', '=', json_encode($model->getOriginalMatchingChanges())],
+            ])->exists();
+        }
+
         return Approval::where('state', ApprovalStatus::Pending)
             ->whereJsonContains('new_data', $model->getDirty())
             ->whereJsonContains('original_data', $model->getOriginalMatchingChanges())
