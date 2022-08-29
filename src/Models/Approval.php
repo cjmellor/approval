@@ -31,6 +31,6 @@ class Approval extends Model
     public function commit()
     {
       $model = new $this->approvalable_type;
-      $model->withoutApproval()->updateOrCreate($this->new_data);
+      $model->withoutApproval()->updateOrCreate($this->new_data->toArray());
     }
 }
