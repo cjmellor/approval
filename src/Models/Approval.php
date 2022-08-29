@@ -10,27 +10,31 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Approval extends Model
 {
-    protected $guarded = [];
+  protected $guarded = [];
 
-    protected $casts = [
-        'new_data' => AsArrayObject::class,
-        'original_data' => AsArrayObject::class,
-        'state' => ApprovalStatus::class,
-    ];
+  protected $casts = [
+    'new_data' => AsArrayObject::class,
+    'original_data' => AsArrayObject::class,
+    'state' => ApprovalStatus::class,
+  ];
 
-    public static function booted()
-    {
-        static::addGlobalScope(new ApprovalStateScope());
+  public static function booted()
+  {
+    static::addGlobalScope(new ApprovalStateScope());
+  }
+
+  public function approvalable(): MorphTo
+  {
+    return $this->morphTo();
+  }
+
+  public function commit()
+  {
+    $model = new $this->approvalable_type;
+    if ($this->approvalable_id) {
+      $model->withoutApproval()->update($this->new_data->toArray());
+    } else {
+      $model->withoutApproval()->create($this->new_data->toArray());
     }
-
-    public function approvalable(): MorphTo
-    {
-        return $this->morphTo();
-    }
-
-    public function commit()
-    {
-      $model = new $this->approvalable_type;
-      $model->withoutApproval()->updateOrCreate($this->new_data->toArray());
-    }
+  }
 }
