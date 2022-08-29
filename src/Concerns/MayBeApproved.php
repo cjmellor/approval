@@ -6,10 +6,14 @@ trait MayBeApproved
 {
 
   use MustBeApproved;
+  protected bool $requireApproval = false;
 
-  public function __construct()
+  /**
+   * Check is the approval can be bypassed.
+   */
+  public function isApprovalBypassed(): bool
   {
-    $this->bypassApproval = true;
+    if ($this->requireApproval) return false;
+    return true;
   }
-
 }
