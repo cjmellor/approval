@@ -101,4 +101,15 @@ trait MustBeApproved
 
         return $this;
     }
+
+    /**
+     * Approval is explicitly required for this update
+     */
+    public function withApproval(): static
+    {
+      $this->bypassApproval = false;
+
+      return $this;
+    }
+  
 }

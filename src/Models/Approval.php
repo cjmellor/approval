@@ -27,4 +27,10 @@ class Approval extends Model
     {
         return $this->morphTo();
     }
+
+    public function commit()
+    {
+      $model = new $this->approvalable_type;
+      $model->withoutApproval()->updateOrCreate($this->new_data);
+    }
 }

@@ -12,9 +12,4 @@ trait MayBeApproved
     $this->bypassApproval = true;
   }
 
-  public function withApproval(): static
-  {
-    $this->bypassApproval = false;
-    return $this;
-  }
 }
