@@ -5,13 +5,10 @@ namespace Cjmellor\Approval\Concerns;
 trait MayBeApproved
 {
 
-  use MustBeApproved {
-    MustBeApproved::__construct as private __parentConstruct;
-  }
+  use MustBeApproved;
 
   public function __construct()
   {
-    $this->__parentConstruct();
     $this->bypassApproval = true;
   }
 
