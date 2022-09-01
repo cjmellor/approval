@@ -31,6 +31,8 @@ trait MayBeApproved
    */
   protected static function approvalModelExists($model): bool
   {
+    print "testing " . get_class($model) . " $model->id ";
+    print_r($model->getDirty());
     return Approval::where('state', ApprovalStatus::Pending)
       ->where('approvalable_id', $model->id)
       ->where('approvalable_type', get_class($model))
