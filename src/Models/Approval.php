@@ -28,15 +28,23 @@ class Approval extends Model
     return $this->morphTo();
   }
 
+  public function reject()
+  {
+    $this->update(['state' => ApprovalStatus::Rejected]);
+  }
+
   public function commit()
   {
+    if ($this->state != ApprovalStatus::Pending) return false;
     if ($this->approvalable_id) {
-      return $this->approvalable_type::find($this->approvalable_id)->withoutApproval()->update($this->new_data->toArray());
+      $model = $this->approvalable_type::find($this->approvalable_id)->withoutApproval()->update($this->new_data->toArray());
+      $this->update(['state' => ApprovalStatus::Approved]);
+      return $model;
     } else {
-      print "I'm going to create a new $this->approvable_type";
       $model = new $this->approvalable_type;
       $model->fill($this->new_data->toArray());
       $model->save();
+      $this->update(['state' => ApprovalStatus::Approved]);
       return $model;
     }
   }
