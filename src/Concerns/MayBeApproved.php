@@ -6,22 +6,22 @@ trait MayBeApproved
 {
 
   use MustBeApproved;
-  protected bool $requiresApproval = false;
+  protected static bool $requiresApproval = false;
 
   public function isApprovalBypassed(): bool
   {
-    return (!$this->requiresApproval);
+    return (!self::$requiresApproval);
   }
 
-  public function requireApproval()
+  public function requireApproval($requires = true)
   {
-    $this->requiresApproval = true;
+    self::$requiresApproval = $requires;
   }
 
   public function withApproval(): static
   {
     $this->bypassApproval = false;
-    $this->requiresApproval = true;
+    self::$requiresApproval = true;
     return $this;
   }
 }
