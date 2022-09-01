@@ -34,7 +34,10 @@ class Approval extends Model
       return $this->approvalable_type::find($this->approvalable_id)->withoutApproval()->update($this->new_data->toArray());
     } else {
       print "I'm going to create a new $this->approvable_type";
-      return $this->approvalable_type::withoutApproval()->create($this->new_data->toArray());
+      $model = new $this->approvalable_type;
+      $model->fill($this->new_data->toArray());
+      $model->save();
+      return $model;
     }
   }
 }
