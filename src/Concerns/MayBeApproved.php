@@ -33,6 +33,11 @@ trait MayBeApproved
   {
     print "testing " . get_class($model) . " $model->id ";
     print_r($model->getDirty());
+    return Approval::where([
+      ['state', '=', ApprovalStatus::Pending],
+      ['new_data', '=', json_encode($model->getDirty())],
+      ['original_data', '=', json_encode($model->getOriginalMatchingChanges())],
+    ])->exists();
     return Approval::where('state', ApprovalStatus::Pending)
       ->where('approvalable_id', $model->id)
       ->where('approvalable_type', get_class($model))
