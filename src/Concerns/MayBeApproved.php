@@ -2,6 +2,7 @@
 
 namespace Cjmellor\Approval\Concerns;
 
+use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Models\Approval;
 
 trait MayBeApproved
