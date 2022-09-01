@@ -28,11 +28,17 @@ class Approval extends Model
     return $this->morphTo();
   }
 
+  /**
+   * Mark the approval as Rejected.
+   */
   public function reject()
   {
     $this->update(['state' => ApprovalStatus::Rejected]);
   }
 
+  /**
+   * Commit the change to the DB and mark the approval as Approved.
+   */
   public function commit()
   {
     if ($this->state != ApprovalStatus::Pending) return false;
@@ -47,5 +53,13 @@ class Approval extends Model
       $this->update(['state' => ApprovalStatus::Approved]);
       return $model;
     }
+  }
+
+  /**
+   * Purge database of completed approvals older than $days.
+   */
+  public static function purge(int $days = -1)
+  {
+    self::where('created_at', '<', now()->subDays($days))->where('state', '!=', ApprovalStatus::Pending)->forceDelete();
   }
 }

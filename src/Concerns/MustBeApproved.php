@@ -72,7 +72,7 @@ trait MustBeApproved
     }
 
     /**
-     * Check is the approval can be bypassed.
+     * Check if the approval can be bypassed.
      */
     public function isApprovalBypassed(): bool
     {
