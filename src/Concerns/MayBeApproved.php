@@ -22,4 +22,16 @@ trait MayBeApproved
   {
     self::$requiresApproval = $requires;
   }
+
+  /**
+   * Check if the Approval model been created already exists with a 'pending' state
+   */
+  protected static function approvalModelExists($model): bool
+  {
+    return Approval::where('state', ApprovalStatus::Pending)
+      ->where('approvalable_id', $model->id)
+      ->where('approvalable_type', $model)
+      ->whereJsonContains('new_data', $model->getDirty())
+      ->exists();
+  }
 }
