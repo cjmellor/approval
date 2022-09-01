@@ -8,7 +8,7 @@ trait MayBeApproved
   use MustBeApproved;
   protected static bool $requiresApproval = false;
 
-  public static function isApprovalBypassed(): bool
+  public function isApprovalBypassed(): bool
   {
     return !self::$requiresApproval;
   }
