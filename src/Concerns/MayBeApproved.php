@@ -2,6 +2,8 @@
 
 namespace Cjmellor\Approval\Concerns;
 
+use Cjmellor\Approval\Models\Approval;
+
 trait MayBeApproved
 {
   use MustBeApproved;
