@@ -33,7 +33,7 @@ trait MayBeApproved
   {
     return Approval::where('state', ApprovalStatus::Pending)
       ->where('approvalable_id', $model->id)
-      ->where('approvalable_type', $model)
+      ->where('approvalable_type', get_class($model))
       ->whereJsonContains('new_data', $model->getDirty())
       ->exists();
   }
