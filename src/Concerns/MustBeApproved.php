@@ -66,7 +66,7 @@ trait MustBeApproved
      */
     protected function getOriginalMatchingChanges(): array
     {
-        return collect($this->getOriginal())
+        return collect($this->getRawOriginal())
             ->only(collect($this->getDirty())->keys())
             ->toArray();
     }
