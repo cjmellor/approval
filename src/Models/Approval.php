@@ -31,9 +31,10 @@ class Approval extends Model
   public function commit()
   {
     if ($this->approvalable_id) {
-      $this->approvalable_type::find($this->approvalable_id)->withoutApproval()->update($this->new_data->toArray());
+      return $this->approvalable_type::find($this->approvalable_id)->withoutApproval()->update($this->new_data->toArray());
     } else {
-      $this->approvalable_type::withoutApproval()->create($this->new_data->toArray());
+      print "I'm going to create a new $this->approvable_type";
+      return $this->approvalable_type::withoutApproval()->create($this->new_data->toArray());
     }
   }
 }
