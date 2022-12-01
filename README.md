@@ -123,6 +123,16 @@ Approval::where('id', 3)->postpone();
 
 In the event you need to reset a state, you can use the `withAnyState` helper.
 
+### Persisting data
+
+By default, once you approve a Model, it will be inserted into the database.
+
+If you don't want to persist to the database on approval, set a `false` flag on the  `approve` method.
+
+```php
+Approval::find(1)->approve(persist: false);
+```
+
 ## Disable Approvals
 
 If you don't want Model data to be approved, you can bypass it with the `withoutApproval` method.

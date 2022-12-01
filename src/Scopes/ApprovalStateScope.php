@@ -48,7 +48,7 @@ class ApprovalStateScope implements Scope
      */
     protected function addWithAnyState(Builder $builder)
     {
-        $builder->macro('withAnyState', fn (Builder $builder) => $builder->withoutGlobalScope($this));
+        $builder->macro('withAnyState', fn (Builder $builder): Builder => $builder->withoutGlobalScope($this));
     }
 
     /**
@@ -56,7 +56,7 @@ class ApprovalStateScope implements Scope
      */
     protected function addApproved(Builder $builder)
     {
-        $builder->macro('approved', fn (Builder $builder) => $builder
+        $builder->macro('approved', fn (Builder $builder): Builder => $builder
             ->withAnyState()
             ->where(column: 'state', operator: ApprovalStatus::Approved));
     }
@@ -66,7 +66,7 @@ class ApprovalStateScope implements Scope
      */
     protected function addPending(Builder $builder)
     {
-        $builder->macro('pending', fn (Builder $builder) => $builder
+        $builder->macro('pending', fn (Builder $builder): Builder => $builder
             ->withAnyState()
             ->where(column: 'state', operator: ApprovalStatus::Pending));
     }
@@ -76,7 +76,7 @@ class ApprovalStateScope implements Scope
      */
     protected function addRejected(Builder $builder)
     {
-        $builder->macro('rejected', fn (Builder $builder) => $builder
+        $builder->macro('rejected', fn (Builder $builder): Builder => $builder
             ->withAnyState()
             ->where(column: 'state', operator: ApprovalStatus::Rejected));
     }
@@ -86,7 +86,19 @@ class ApprovalStateScope implements Scope
      */
     protected function addApprove(Builder $builder)
     {
-        $builder->macro('approve', fn (Builder $builder) => $this->updateApprovalState($builder, state: ApprovalStatus::Approved));
+        $builder->macro('approve', function (Builder $builder, bool $persist = true): int {
+            if ($persist) {
+                $modelClass = $builder->getModel()->first()->approvalable_type;
+
+                $model = new $modelClass();
+
+                $model->fill($builder->getModel()->new_data->toArray());
+
+                $model->withoutApproval()->save();
+            }
+
+            return $this->updateApprovalState($builder, state: ApprovalStatus::Approved);
+        });
     }
 
     /**
@@ -94,7 +106,7 @@ class ApprovalStateScope implements Scope
      */
     protected function addPostpone(Builder $builder)
     {
-        $builder->macro('postpone', fn (Builder $builder) => $this->updateApprovalState($builder, state: ApprovalStatus::Pending));
+        $builder->macro('postpone', fn (Builder $builder): int => $this->updateApprovalState($builder, state: ApprovalStatus::Pending));
     }
 
     /**
@@ -102,7 +114,7 @@ class ApprovalStateScope implements Scope
      */
     protected function addReject(Builder $builder)
     {
-        $builder->macro('reject', fn (Builder $builder) => $this->updateApprovalState($builder, state: ApprovalStatus::Rejected));
+        $builder->macro('reject', fn (Builder $builder): int => $this->updateApprovalState($builder, state: ApprovalStatus::Rejected));
     }
 
     /**
