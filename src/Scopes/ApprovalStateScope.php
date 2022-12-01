@@ -86,7 +86,19 @@ class ApprovalStateScope implements Scope
      */
     protected function addApprove(Builder $builder)
     {
-        $builder->macro('approve', fn (Builder $builder) => $this->updateApprovalState($builder, state: ApprovalStatus::Approved));
+        $builder->macro('approve', function (Builder $builder, bool $persist = true): int {
+            if ($persist) {
+                $modelClass = $builder->getModel()->first()->approvalable_type;
+
+                $model = new $modelClass();
+
+                $model->fill($builder->getModel()->new_data->toArray());
+
+                $model->withoutApproval()->save();
+            }
+
+            return $this->updateApprovalState($builder, state: ApprovalStatus::Approved);
+        });
     }
 
     /**
