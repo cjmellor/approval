@@ -34,7 +34,8 @@ test(description: 'an approvals model is created when a model is created with Mu
     // check it has been put in the approvals' table before the fake_models table
     ->assertDatabaseHas('approvals', [
         'new_data' => json_encode([
-            'name' => 'Chris', 'meta' => 'red',
+            'name' => 'Chris',
+            'meta' => 'red',
         ]),
         'original_data' => json_encode([]),
     ])
@@ -72,10 +73,7 @@ test(description: 'an approval model cannot be duplicated', closure: function ()
 
     // check it was added to the db
     $this->assertDatabaseHas('approvals', [
-        'new_data' => json_encode([
-            'name' => 'Chris',
-            'meta' => 'red',
-        ]),
+        'new_data' => json_encode($this->fakeModelData),
     ]);
 
     // add another model with the same data...
@@ -83,4 +81,39 @@ test(description: 'an approval model cannot be duplicated', closure: function ()
 
     // as it is a duplicate, it should not be added to the DB
     $this->assertDatabaseCount('approvals', 1);
+});
+
+test(description: 'a Model is added to the corresponding table when approved', closure: function () {
+    // create a fake model with data
+    FakeModel::create($this->fakeModelData);
+
+    // check it was added to the db
+    $this->assertDatabaseHas('approvals', [
+        'new_data' => json_encode($this->fakeModelData),
+    ]);
+
+    // sanity check that is hasn't been added to the fake_models table
+    $this->assertDatabaseMissing('fake_models', $this->fakeModelData);
+
+    // approve the model
+    Approval::first()->approve();
+
+    // check it was added to the fake_models table
+    $this->assertDatabaseHas('fake_models', $this->fakeModelData);
+});
+
+test(description: 'a Model cannot be persisted when given a flag', closure: function () {
+    // create a fake model with data
+    FakeModel::create($this->fakeModelData);
+
+    // check it was added to the db
+    $this->assertDatabaseHas('approvals', [
+        'new_data' => json_encode($this->fakeModelData),
+    ]);
+
+    // approve the model
+    Approval::first()->approve(false);
+
+    // check it was added to the fake_models table
+    $this->assertDatabaseEmpty('fake_models');
 });
