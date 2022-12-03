@@ -102,6 +102,36 @@ test(description: 'a Model is added to the corresponding table when approved', c
     $this->assertDatabaseHas('fake_models', $this->fakeModelData);
 });
 
+test(description: 'A Model that is only being updated, is persisted correctly to the database', closure: function () {
+    // create a fake model with data
+    (new FakeModel($this->fakeModelData))
+        ->withoutApproval()
+        ->save();
+
+    // update the model with new data
+    FakeModel::first()
+        ->update(['name' => 'Bob']);
+
+    // check it was added to the db
+    $this->assertDatabaseHas('approvals', [
+        'new_data' => json_encode([
+            'name' => 'Bob',
+        ]),
+        'original_data' => json_encode([
+            'name' => 'Chris',
+        ]),
+    ]);
+
+    // approve the model
+    Approval::first()->approve();
+
+    // check the fake_models table was updated correctly
+    $this->assertDatabaseHas('fake_models', [
+        'name' => 'Bob',
+        'meta' => 'red',
+    ]);
+});
+
 test(description: 'a Model cannot be persisted when given a flag', closure: function () {
     // create a fake model with data
     FakeModel::create($this->fakeModelData);
@@ -115,5 +145,5 @@ test(description: 'a Model cannot be persisted when given a flag', closure: func
     Approval::first()->approve(false);
 
     // check it was added to the fake_models table
-    $this->assertDatabaseEmpty('fake_models');
+    $this->assertDatabaseCount('fake_models', 0);
 });

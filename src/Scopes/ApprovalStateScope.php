@@ -90,7 +90,13 @@ class ApprovalStateScope implements Scope
             if ($persist) {
                 $modelClass = $builder->getModel()->first()->approvalable_type;
 
+                $modelId = $builder->getModel()->approvalable_id;
+
                 $model = new $modelClass();
+
+                if ($modelId) {
+                    $model = $model->find($modelId);
+                }
 
                 $model->fill($builder->getModel()->new_data->toArray());
 
