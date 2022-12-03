@@ -145,5 +145,5 @@ test(description: 'a Model cannot be persisted when given a flag', closure: func
     Approval::first()->approve(false);
 
     // check it was added to the fake_models table
-    $this->assertDatabaseEmpty('fake_models');
+    $this->assertDatabaseCount('fake_models', 0);
 });
