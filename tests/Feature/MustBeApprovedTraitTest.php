@@ -21,7 +21,7 @@ beforeEach(closure: function (): void {
 
 it(description: 'stores the data correctly in the database')
     ->tap(
-        fn(): Approval => Approval::create($this->approvalData)
+        fn (): Approval => Approval::create($this->approvalData)
     )->assertDatabaseHas('approvals', [
         'approvalable_type' => 'App\Models\FakeModel',
         'approvalable_id' => 1,
@@ -30,7 +30,7 @@ it(description: 'stores the data correctly in the database')
 
 test(description: 'an approvals model is created when a model is created with MustBeApproved trait set')
     // create a fake model
-    ->tap(callable: fn() => FakeModel::create($this->fakeModelData))
+    ->tap(callable: fn () => FakeModel::create($this->fakeModelData))
     // check it has been put in the approvals' table before the fake_models table
     ->assertDatabaseHas('approvals', [
         'new_data' => json_encode([
