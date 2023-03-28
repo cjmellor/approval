@@ -103,7 +103,11 @@ class ApprovalStateScope implements Scope
                 $model->withoutApproval()->save();
             }
 
-            return $this->updateApprovalState($builder, state: ApprovalStatus::Approved);
+            return $builder
+                ->find(id: $builder->getModel()->id)
+                ->update([
+                    'state' => ApprovalStatus::Approved,
+                ]);
         });
     }
 
