@@ -60,8 +60,40 @@ test(description: 'A Model can be Approved', closure: function (): void {
     $approval = Approval::first();
     $approval->approve();
 
-    $this->assertDatabaseHas(table: 'fake_models', data: [
-        'name' => 'Chris',
-        'meta' => 'red',
-    ]);
+    expect($approval)->fresh()->state->toBe(ApprovalStatus::Approved);
+
+    $this->assertDatabaseHas(table: 'fake_models', data: $this->fakeModelData);
+});
+
+test(description: 'A Model can be Rejected', closure: function (): void {
+    FakeModel::create($this->fakeModelData);
+
+    $approval = Approval::first();
+    $approval->reject();
+
+    expect($approval)->fresh()->state->toBe(ApprovalStatus::Rejected);
+
+    $this->assertDatabaseMissing(table: 'fake_models', data: $this->fakeModelData);
+});
+
+test(description: 'A Model can be Postponed', closure: function (): void {
+    FakeModel::create($this->fakeModelData);
+
+    $approval = Approval::first();
+    $approval->postpone();
+
+    expect($approval)->fresh()->state->toBe(ApprovalStatus::Pending);
+
+    $this->assertDatabaseMissing(table: 'fake_models', data: $this->fakeModelData);
+});
+
+it(description: 'only changes the status of the requested model', closure: function () {
+    FakeModel::create($this->fakeModelData);
+    FakeModel::create(['name' => 'Bob', 'meta' => 'green']);
+
+    $modelOneApproval = Approval::first();
+    $modelOneApproval->approve();
+
+    expect($modelOneApproval)->fresh()->state->toBe(expected: ApprovalStatus::Approved)
+        ->and(Approval::find(id: 2))->state->toBe(expected: ApprovalStatus::Pending);
 });
