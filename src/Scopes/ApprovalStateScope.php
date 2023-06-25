@@ -88,7 +88,7 @@ class ApprovalStateScope implements Scope
     {
         $builder->macro('approve', function (Builder $builder, bool $persist = true): int {
             if ($persist) {
-                $modelClass = $builder->getModel()->first()->approvalable_type;
+                $modelClass = $builder->getModel()->approvalable_type;
 
                 $modelId = $builder->getModel()->approvalable_id;
 
