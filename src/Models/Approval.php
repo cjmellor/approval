@@ -18,7 +18,7 @@ class Approval extends Model
         'state' => ApprovalStatus::class,
     ];
 
-    public static function booted()
+    public static function booted(): void
     {
         static::addGlobalScope(new ApprovalStateScope());
     }

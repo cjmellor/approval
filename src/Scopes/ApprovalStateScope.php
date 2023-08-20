@@ -3,9 +3,13 @@
 namespace Cjmellor\Approval\Scopes;
 
 use Cjmellor\Approval\Enums\ApprovalStatus;
+use Cjmellor\Approval\Events\ModelApproved;
+use Cjmellor\Approval\Events\ModelRejected;
+use Cjmellor\Approval\Events\ModelSetPending;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
+use Illuminate\Support\Facades\Event;
 
 class ApprovalStateScope implements Scope
 {
@@ -108,6 +112,24 @@ class ApprovalStateScope implements Scope
     }
 
     /**
+     * A helper method for updating the approvals state.
+     */
+    protected function updateApprovalState(Builder $builder, ApprovalStatus $state): int
+    {
+        match ($state) {
+            ApprovalStatus::Approved => Event::dispatch(new ModelApproved()),
+            ApprovalStatus::Pending => Event::dispatch(new ModelSetPending()),
+            ApprovalStatus::Rejected => Event::dispatch(new ModelRejected()),
+        };
+
+        return $builder
+            ->find(id: $builder->getModel()->id)
+            ->update([
+                'state' => $state,
+            ]);
+    }
+
+    /**
      * Set state as 'pending' (default).
      */
     protected function addPostpone(Builder $builder): void
@@ -121,17 +143,5 @@ class ApprovalStateScope implements Scope
     protected function addReject(Builder $builder): void
     {
         $builder->macro('reject', fn (Builder $builder): int => $this->updateApprovalState($builder, state: ApprovalStatus::Rejected));
-    }
-
-    /**
-     * A helper method for updating the approvals state.
-     */
-    protected function updateApprovalState(Builder $builder, $state): int
-    {
-        return $builder
-            ->find(id: $builder->getModel()->id)
-            ->update([
-                'state' => $state,
-            ]);
     }
 }
