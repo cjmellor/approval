@@ -1,8 +1,12 @@
 <?php
 
 use Cjmellor\Approval\Enums\ApprovalStatus;
+use Cjmellor\Approval\Events\ModelApproved;
+use Cjmellor\Approval\Events\ModelRejected;
+use Cjmellor\Approval\Events\ModelSetPending;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
+use Illuminate\Support\Facades\Event;
 
 beforeEach(closure: function (): void {
     $this->fakeModelData = [
@@ -97,3 +101,18 @@ it(description: 'only changes the status of the requested model', closure: funct
     expect($modelOneApproval)->fresh()->state->toBe(expected: ApprovalStatus::Approved)
         ->and(Approval::find(id: 2))->state->toBe(expected: ApprovalStatus::Pending);
 });
+
+test(description: 'An event is fired when a Model\'s state is changed', closure: function (string $state): void {
+    FakeModel::create($this->fakeModelData);
+
+    Event::fake();
+
+    $approval = Approval::first();
+    $approval->$state();
+
+    match ($state) {
+        'approve' => Event::assertDispatched(ModelApproved::class),
+        'reject' => Event::assertDispatched(ModelRejected::class),
+        'postpone' => Event::assertDispatched(ModelSetPending::class),
+    };
+})->with(['approve', 'reject', 'postpone']);
