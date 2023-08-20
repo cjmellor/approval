@@ -11,7 +11,7 @@ jobs:
         php: [ 8.1, 8.2 ]
         stability: [ prefer-lowest, prefer-stable ]
 
-    name: "PHP: v${{ matrix.php }}"
+    name: "PHP: v${{ matrix.php }} [${{ matrix.stability }}]"
 
     steps:
       - name: Checkout
