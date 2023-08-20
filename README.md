@@ -123,6 +123,16 @@ Approval::where('id', 3)->postpone();
 
 In the event you need to reset a state, you can use the `withAnyState` helper.
 
+### Events
+
+Once a Model's state has been changed, an event will be fired.
+
+```php
+ModelApproved::class
+ModelPostponed::class
+ModelRejected::class
+```
+
 ### Persisting data
 
 By default, once you approve a Model, it will be inserted into the database.
