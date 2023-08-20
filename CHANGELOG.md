@@ -2,6 +2,15 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.2.0 - 2023-08-20
+
+### What's Changed
+
+- build(deps): Bump dependabot/fetch-metadata from 1.5.1 to 1.6.0 by @dependabot in https://github.com/cjmellor/approval/pull/32
+- Add Events by @cjmellor in https://github.com/cjmellor/approval/pull/33
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.1.5...v1.2.0
+
 ## v1.1.5 - 2023-06-25
 
 ### What's Changed
