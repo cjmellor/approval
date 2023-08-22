@@ -116,3 +116,93 @@ test(description: 'An event is fired when a Model\'s state is changed', closure:
         'postpone' => Event::assertDispatched(ModelSetPending::class),
     };
 })->with(['approve', 'reject', 'postpone']);
+
+test(description: 'A Model can be Approved if a condition is met', closure: function (): void {
+    FakeModel::create($this->fakeModelData);
+
+    Event::fake();
+
+    $approval = Approval::first();
+    $approval->approveIf(boolean: true);
+
+    expect($approval)->fresh()->state->toBe(ApprovalStatus::Approved);
+
+    Event::assertDispatched(event: ModelApproved::class);
+
+    $this->assertDatabaseHas(table: 'fake_models', data: $this->fakeModelData);
+});
+
+test(description: 'A Model can be Approved unless a condition is met', closure: function (): void {
+    FakeModel::create($this->fakeModelData);
+
+    Event::fake();
+
+    $approval = Approval::first();
+    $approval->approveUnless(boolean: false);
+
+    expect($approval)->fresh()->state->toBe(ApprovalStatus::Approved);
+
+    Event::assertDispatched(event: ModelApproved::class);
+
+    $this->assertDatabaseHas(table: 'fake_models', data: $this->fakeModelData);
+});
+
+test(description: 'A Model can be Rejected if a condition is met', closure: function (): void {
+    FakeModel::create($this->fakeModelData);
+
+    Event::fake();
+
+    $approval = Approval::first();
+    $approval->rejectIf(boolean: true);
+
+    expect($approval)->fresh()->state->toBe(ApprovalStatus::Rejected);
+
+    Event::assertDispatched(event: ModelRejected::class);
+
+    $this->assertDatabaseMissing(table: 'fake_models', data: $this->fakeModelData);
+});
+
+test(description: 'A Model can be Rejected unless a condition is met', closure: function (): void {
+    FakeModel::create($this->fakeModelData);
+
+    Event::fake();
+
+    $approval = Approval::first();
+    $approval->rejectUnless(boolean: false);
+
+    expect($approval)->fresh()->state->toBe(ApprovalStatus::Rejected);
+
+    Event::assertDispatched(event: ModelRejected::class);
+
+    $this->assertDatabaseMissing(table: 'fake_models', data: $this->fakeModelData);
+});
+
+test(description: 'A Model can be Postponed if a condition is met', closure: function (): void {
+    FakeModel::create($this->fakeModelData);
+
+    Event::fake();
+
+    $approval = Approval::first();
+    $approval->postponeIf(boolean: true);
+
+    expect($approval)->fresh()->state->toBe(ApprovalStatus::Pending);
+
+    Event::assertDispatched(event: ModelSetPending::class);
+
+    $this->assertDatabaseMissing(table: 'fake_models', data: $this->fakeModelData);
+});
+
+test(description: 'A Model can be Postponed unless a condition is met', closure: function (): void {
+    FakeModel::create($this->fakeModelData);
+
+    Event::fake();
+
+    $approval = Approval::first();
+    $approval->postponeUnless(boolean: false);
+
+    expect($approval)->fresh()->state->toBe(ApprovalStatus::Pending);
+
+    Event::assertDispatched(event: ModelSetPending::class);
+
+    $this->assertDatabaseMissing(table: 'fake_models', data: $this->fakeModelData);
+});

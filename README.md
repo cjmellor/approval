@@ -50,7 +50,7 @@ The config allows you to change the polymorphic pivot name. It should end with `
 
 ## Usage
 
-> This packages utilises Enums, so both PHP 8.1 and Laravel 9 must be used.
+> The package utilises Enums, so both PHP 8.1 and Laravel 9 must be used.
 > 
 > **Note** This package does not approve/deny the data for you, it just stores the new/amended data into the database. It is up to you to decide how you implement a function to approve or deny the Model.
 
@@ -97,7 +97,7 @@ The package comes with some helper methods for the Builder, utilising a custom s
 
 By default, all queries to the `approvals` table will return all the Models' no matter the state. 
 
-There are three methods to help you retrieve the state of an Approval.
+There are three methods to help you retrieve the state of the Approval.
 
 ```php
 <?php
@@ -122,6 +122,20 @@ Approval::where('id', 3)->postpone();
 ```
 
 In the event you need to reset a state, you can use the `withAnyState` helper.
+
+### Helpers
+
+Conditional helper methods are used, so you can set the state of an Approval when a condition is met.
+
+```php
+$approval->approveIf(true);
+$approval->rejectIf(false);
+$approval->postponeIf(true);
+
+$approval->approveUnless(false);
+$approval->rejectUnless(true);
+$approval->postponeUnless(false);
+```
 
 ### Events
 
@@ -171,4 +185,4 @@ Please open a PR with as much detail as possible about what you're trying to ach
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+The MIT Licence (MIT). Please see [Licence File](LICENSE.md) for more information.
