@@ -90,7 +90,7 @@ class ApprovalStateScope implements Scope
      */
     protected function addApprove(Builder $builder): void
     {
-        $builder->macro('approve', function (Builder $builder, bool $persist = true, $callback = null): int {
+        $builder->macro('approve', function (Builder $builder, bool $persist = true): int {
             if ($persist) {
                 $modelClass = $builder->getModel()->approvalable_type;
 
