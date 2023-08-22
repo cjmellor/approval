@@ -2,6 +2,14 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.3.0 - 2023-08-22
+
+### What's Changed
+
+- Add conditional helper methods by @cjmellor in https://github.com/cjmellor/approval/pull/34
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.2.0...v1.3.0
+
 ## v1.2.0 - 2023-08-20
 
 ### What's Changed
