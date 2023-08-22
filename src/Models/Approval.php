@@ -27,4 +27,46 @@ class Approval extends Model
     {
         return $this->morphTo();
     }
+
+    public function approveIf(bool $boolean): void
+    {
+        if ($boolean) {
+            $this->approve();
+        }
+    }
+
+    public function approveUnless(bool $boolean): void
+    {
+        if (! $boolean) {
+            $this->approve();
+        }
+    }
+
+    public function postponeIf(bool $boolean): void
+    {
+        if ($boolean) {
+            $this->postpone();
+        }
+    }
+
+    public function postponeUnless(bool $boolean): void
+    {
+        if (! $boolean) {
+            $this->postpone();
+        }
+    }
+
+    public function rejectIf(bool $boolean): void
+    {
+        if ($boolean) {
+            $this->reject();
+        }
+    }
+
+    public function rejectUnless(bool $boolean): void
+    {
+        if (! $boolean) {
+            $this->reject();
+        }
+    }
 }
