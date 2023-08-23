@@ -1,10 +1,8 @@
-
-# Approve new Model data before it is persisted
-
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/cjmellor/approval.svg?style=flat-square)](https://packagist.org/packages/cjmellor/approval)
-[![GitHub Tests Action Status](https://img.shields.io/github/workflow/status/cjmellor/approval/run-tests?label=tests)](https://github.com/cjmellor/approval/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/workflow/status/cjmellor/approval/Check%20&%20fix%20styling?label=code%20style)](https://github.com/cjmellor/approval/actions?query=workflow%3A"Check+%26+fix+styling"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/cjmellor/approval.svg?style=flat-square)](https://packagist.org/packages/cjmellor/approval)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/cjmellor/approval?color=rgb%2856%20189%20248%29&label=release&style=for-the-badge)](https://packagist.org/packages/cjmellor/approval)
+[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/cjmellor/approval/run-pest.yml?branch=main&label=tests&style=for-the-badge&color=rgb%28134%20239%20128%29)](https://github.com/cjmellor/approval/actions?query=workflow%3Arun-tests+branch%3Amain)
+[![Total Downloads](https://img.shields.io/packagist/dt/cjmellor/approval.svg?color=rgb%28249%20115%2022%29&style=for-the-badge)](https://packagist.org/packages/cjmellor/approval)
+![Packagist PHP Version](https://img.shields.io/packagist/dependency-v/cjmellor/approval/php?color=rgb%28165%20180%20252%29&logo=php&logoColor=rgb%28165%20180%20252%29&style=for-the-badge)
+![Laravel Version](https://img.shields.io/badge/laravel-^9-rgb(235%2068%2050)?style=for-the-badge&logo=laravel)
 
 Approval is a Laravel package that provides a simple way to approve new Model data before it is persisted.
 
