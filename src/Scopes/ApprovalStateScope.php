@@ -8,6 +8,7 @@ use Cjmellor\Approval\Events\ModelRejected;
 use Cjmellor\Approval\Events\ModelSetPending;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\Scope;
 use Illuminate\Support\Facades\Event;
 
@@ -96,7 +97,8 @@ class ApprovalStateScope implements Scope
 
                 $modelId = $builder->getModel()->approvalable_id;
 
-                $model = new $modelClass();
+                $morphedModel = Relation::getMorphedModel($modelClass) ?? $modelClass;
+                $model = new $morphedModel();
 
                 if ($modelId) {
                     $model = $model->find($modelId);
