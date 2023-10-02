@@ -2,6 +2,15 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.3.1 - 2023-10-02
+
+### What's Changed
+
+- build(deps): Bump actions/checkout from 3 to 4 by @dependabot in https://github.com/cjmellor/approval/pull/37
+- fix: Use with morphMaps by @cjmellor in https://github.com/cjmellor/approval/pull/39
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.3.0...v1.3.1
+
 ## v1.3.0 - 2023-08-22
 
 ### What's Changed
