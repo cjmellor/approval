@@ -155,6 +155,16 @@ If you don't want to persist to the database on approval, set a `false` flag on 
 Approval::find(1)->approve(persist: false);
 ```
 
+## Rollbacks
+
+If you need to rollback an approval, you can use the `rollback` method.
+
+```php
+Approval::first()->rollback();
+```
+
+This will revert the data and set the state to `pending` and touch the `rolled_back_at` timestamp so you have a record of when it was rolled back.
+
 ## Disable Approvals
 
 If you don't want Model data to be approved, you can bypass it with the `withoutApproval` method.
