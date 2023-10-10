@@ -5,6 +5,7 @@ namespace Cjmellor\Approval\Models;
 use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Events\ModelRolledBackEvent;
 use Cjmellor\Approval\Scopes\ApprovalStateScope;
+use Closure;
 use Exception;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
@@ -74,8 +75,12 @@ class Approval extends Model
         }
     }
 
-    public function rollback(): void
+    public function rollback(Closure $condition = null): void
     {
+        if ($condition && ! $condition($this)) {
+            return;
+        }
+
         throw_if(
             condition: $this->state !== ApprovalStatus::Approved,
             exception: Exception::class,

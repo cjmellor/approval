@@ -157,13 +157,21 @@ Approval::find(1)->approve(persist: false);
 
 ## Rollbacks
 
-If you need to rollback an approval, you can use the `rollback` method.
+If you need to roll back an approval, you can use the `rollback` method.
 
 ```php
 Approval::first()->rollback();
 ```
 
-This will revert the data and set the state to `pending` and touch the `rolled_back_at` timestamp so you have a record of when it was rolled back.
+This will revert the data and set the state to `pending` and touch the `rolled_back_at` timestamp, so you have a record of when it was rolled back.
+
+### Conditional Rollbacks
+
+A roll-back can be conditional, so you can roll back an approval if a condition is met.
+
+```php
+Approval::first()->rollback(fn () => true);
+```
 
 ## Disable Approvals
 
