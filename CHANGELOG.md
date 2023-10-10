@@ -2,6 +2,15 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.4.0 - 2023-10-10
+
+### What's Changed
+
+- build(deps): Bump stefanzweifel/git-auto-commit-action from 4 to 5 by @dependabot in https://github.com/cjmellor/approval/pull/40
+- feat: Rollback Approvals by @cjmellor in https://github.com/cjmellor/approval/pull/41
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.3.1...v1.4.0
+
 ## v1.3.1 - 2023-10-02
 
 ### What's Changed
