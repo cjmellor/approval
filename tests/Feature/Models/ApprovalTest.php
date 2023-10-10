@@ -35,10 +35,13 @@ test(description: 'an Approved Model can be rolled back', closure: function (): 
         ->rolled_back_at->not->toBeNull();
 
     // Assert the Events were fired
-    Event::assertDispatched(ModelRolledBackEvent::class);
+    Event::assertDispatched(function (ModelRolledBackEvent $event) use ($fakeModel): bool {
+        return $event->approval->is($fakeModel->fresh()->approvals()->first())
+            && $event->user === null;
+    });
 });
 
-test('a rolled back Approval can be conditionally set', function () {
+test(description: 'a rolled back Approval can be conditionally set', closure: function () {
     // Build a query
     $fakeModel = new FakeModel();
 

@@ -173,6 +173,16 @@ A roll-back can be conditional, so you can roll back an approval if a condition 
 Approval::first()->rollback(fn () => true);
 ```
 
+### Events
+
+When a Model has been rolled back, a `ModelRolledBack` event will be fired with the Approval Model that was rolled back, as well as the User that rolled it back.
+
+```php
+// ModelRolledBackEvent::class
+
+public Model $approval,
+public Authenticatable|null $user,
+````
 ## Disable Approvals
 
 If you don't want Model data to be approved, you can bypass it with the `withoutApproval` method.

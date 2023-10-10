@@ -97,6 +97,6 @@ class Approval extends Model
             'rolled_back_at' => now(),
         ]);
 
-        Event::dispatch(new ModelRolledBackEvent($this));
+        Event::dispatch(new ModelRolledBackEvent(approval: $this, user: auth()->user()));
     }
 }
