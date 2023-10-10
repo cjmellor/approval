@@ -1,7 +1,23 @@
 <?php
 
+use Cjmellor\Approval\Enums\ApprovalStatus;
+use Cjmellor\Approval\Tests\Models\FakeModel;
 use Cjmellor\Approval\Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(TestCase::class)->in(__DIR__);
-uses(RefreshDatabase::class);
+uses(TestCase::class, RefreshDatabase::class)
+    ->beforeEach(hook: function (): void {
+        $this->approvalData = [
+            'approvalable_type' => FakeModel::class,
+            'approvalable_id' => 1,
+            'state' => ApprovalStatus::Pending,
+            'new_data' => json_encode(['name' => 'Chris']),
+            'original_data' => json_encode(['name' => 'Bob']),
+        ];
+
+        $this->fakeModelData = [
+            'name' => 'Chris',
+            'meta' => 'red',
+        ];
+    })
+    ->in(__DIR__);

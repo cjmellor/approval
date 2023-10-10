@@ -8,13 +8,6 @@ use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
 use Illuminate\Support\Facades\Event;
 
-beforeEach(closure: function (): void {
-    $this->fakeModelData = [
-        'name' => 'Chris',
-        'meta' => 'red',
-    ];
-});
-
 test('Check if an Approval Model is approved', closure: function (): void {
     $this->approvalData = [
         'approvalable_type' => 'App\Models\FakeModel',

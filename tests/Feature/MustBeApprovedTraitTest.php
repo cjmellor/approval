@@ -4,33 +4,18 @@ use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
 
-beforeEach(closure: function (): void {
-    $this->approvalData = [
-        'approvalable_type' => 'App\Models\FakeModel',
-        'approvalable_id' => 1,
-        'state' => ApprovalStatus::Pending,
-        'new_data' => json_encode(['name' => 'Chris']),
-        'original_data' => json_encode(['name' => 'Bob']),
-    ];
-
-    $this->fakeModelData = [
-        'name' => 'Chris',
-        'meta' => 'red',
-    ];
-});
-
 it(description: 'stores the data correctly in the database')
-    ->tap(
+    ->defer(
         fn (): Approval => Approval::create($this->approvalData)
     )->assertDatabaseHas('approvals', [
-        'approvalable_type' => 'App\Models\FakeModel',
+        'approvalable_type' => FakeModel::class,
         'approvalable_id' => 1,
         'state' => ApprovalStatus::Pending,
     ]);
 
 test(description: 'an approvals model is created when a model is created with MustBeApproved trait set')
     // create a fake model
-    ->tap(callable: fn () => FakeModel::create($this->fakeModelData))
+    ->defer(callable: fn () => FakeModel::create($this->fakeModelData))
     // check it has been put in the approvals' table before the fake_models table
     ->assertDatabaseHas('approvals', [
         'new_data' => json_encode([
@@ -92,7 +77,7 @@ test(description: 'a Model is added to the corresponding table when approved', c
         'new_data' => json_encode($this->fakeModelData),
     ]);
 
-    // sanity check that is hasn't been added to the fake_models table
+    // check that it hasn't been added to the fake_models table
     $this->assertDatabaseMissing('fake_models', $this->fakeModelData);
 
     // approve the model

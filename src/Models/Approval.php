@@ -3,10 +3,14 @@
 namespace Cjmellor\Approval\Models;
 
 use Cjmellor\Approval\Enums\ApprovalStatus;
+use Cjmellor\Approval\Events\ModelRolledBackEvent;
 use Cjmellor\Approval\Scopes\ApprovalStateScope;
+use Closure;
+use Exception;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Facades\Event;
 
 class Approval extends Model
 {
@@ -16,6 +20,7 @@ class Approval extends Model
         'new_data' => AsArrayObject::class,
         'original_data' => AsArrayObject::class,
         'state' => ApprovalStatus::class,
+        'rolled_back_at' => 'datetime',
     ];
 
     public static function booted(): void
@@ -68,5 +73,30 @@ class Approval extends Model
         if (! $boolean) {
             $this->reject();
         }
+    }
+
+    public function rollback(Closure $condition = null): void
+    {
+        if ($condition && ! $condition($this)) {
+            return;
+        }
+
+        throw_if(
+            condition: $this->state !== ApprovalStatus::Approved,
+            exception: Exception::class,
+            message: 'Cannot rollback an Approval that has not been approved.'
+        );
+
+        $model = $this->approvalable;
+        $model->update($this->original_data->getArrayCopy());
+
+        $this->update([
+            'state' => ApprovalStatus::Pending,
+            'new_data' => $this->original_data,
+            'original_data' => $this->new_data,
+            'rolled_back_at' => now(),
+        ]);
+
+        Event::dispatch(new ModelRolledBackEvent(approval: $this, user: auth()->user()));
     }
 }
