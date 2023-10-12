@@ -104,8 +104,7 @@ class ApprovalStateScope implements Scope
                     $model = $model->find($modelId);
                 }
 
-                $model->fill($builder->getModel()->new_data->toArray());
-
+                $model->forceFill($builder->getModel()->new_data->toArray());
                 $model->withoutApproval()->save();
             }
 
