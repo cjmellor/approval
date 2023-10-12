@@ -2,6 +2,14 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.4.1 - 2023-10-12
+
+### What's Changed
+
+- fix: Force data approval by @cjmellor in https://github.com/cjmellor/approval/pull/43
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.4.0...v1.4.1
+
 ## v1.4.0 - 2023-10-10
 
 ### What's Changed
