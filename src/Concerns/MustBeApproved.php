@@ -47,8 +47,6 @@ trait MustBeApproved
                         ->except($model->getApprovalInclude())
                         ->toArray();
 
-                    ray($noApprovalNeeded);
-
                     $model->discardChanges();
                     $model->forceFill($noApprovalNeeded);
                 }
