@@ -21,101 +21,63 @@ trait MustBeApproved
      */
     protected static function insertApprovalRequest($model)
     {
-        // some optimization
-        $filteredDirty = $model->getFilteredDirty();
+        $filteredDirty = $model->getDirtyAttributes();
 
-        if (!$model->isApprovalBypassed() && !empty($filteredDirty))
-        {
-            $noNeedToProceed = true;
-
-            /**
-             * If the 'approvalInclude' array is empty, we can skip
-             * this whole section
-             */
-            if (!empty($model->getApprovalInclude())) {
-                /**
-                 * If there is nothing changed besides the attributes
-                 * in the includes list, we can return false.
-                 */
-                $noNeedToProceed = collect($model->getDirty())
-                    ->except($model->getApprovalInclude())
-                    ->isEmpty();
-
-                /**
-                 * If we do have some attributes which are not subject for
-                 * approval, make sure that those go through the regular
-                 * process
-                 */
-                if (!$noNeedToProceed && !empty($model->getApprovalInclude())) {
-                    $noApprovalNeeded = collect($model->getDirty())
-                        ->except($model->getApprovalInclude())
-                        ->toArray();
-
-                    $model->discardChanges();
-                    $model->forceFill($noApprovalNeeded);
-                }
-            }
-
-            /**
-             * Create the new Approval model
-             */
-            if (self::approvalModelExists($model)) {
-                if( $noNeedToProceed ) return false;
-            }
-
-            $model->approvals()->create([
-                'new_data' => $filteredDirty,
-                'original_data' => $model->getOriginalMatchingChanges(),
-            ]);
-
-            if( $noNeedToProceed ) return false;
+        if ($model->isApprovalBypassed() || empty($filteredDirty)) {
+            return;
         }
-    }
 
-    /**
-     * Check if the Approval model been created already exists with a 'pending' state
-     */
-    protected static function approvalModelExists($model): bool
-    {
-        return Approval::where([
-            ['state', '=', ApprovalStatus::Pending],
-            ['new_data', '=', json_encode($model->getFilteredDirty())],
-            ['original_data', '=', json_encode($model->getOriginalMatchingChanges())],
-        ])->exists();
-    }
+        $noNeedToProceed = true;
+        $approvalAttributes = $model->getApprovalAttributes();
 
-    /**
-     * The polymorphic relationship for the Approval model.
-     */
-    public function approvals(): MorphMany
-    {
-        return $this->morphMany(related: Approval::class, name: 'approvalable');
-    }
+        if (! empty($approvalAttributes)) {
+            $noNeedToProceed = collect($model->getDirty())
+                ->except($approvalAttributes)
+                ->isEmpty();
 
-    /**
-     * Gets the original model data and only gets the keys that match the dirty attributes.
-     */
-    protected function getOriginalMatchingChanges(): array
-    {
-        return collect($this->getOriginal())
-            ->only(collect($this->getFilteredDirty())->keys())
-            ->toArray();
+            if (! $noNeedToProceed) {
+                $noApprovalNeeded = collect($model->getDirty())
+                    ->except($approvalAttributes)
+                    ->toArray();
+
+                $model->discardChanges();
+
+                $model->forceFill($noApprovalNeeded);
+            }
+        }
+
+        if (self::approvalModelExists($model) && $noNeedToProceed) {
+            return false;
+        }
+
+        $model->approvals()->create([
+            'new_data' => $filteredDirty,
+            'original_data' => $model->getOriginalMatchingChanges(),
+        ]);
+
+        if ($noNeedToProceed) {
+            return false;
+        }
+        return;
     }
 
     /**
      * Get the dirty attributes, but only those which should be included
-     *
-     * @return array
      */
-    protected function getFilteredDirty(): array
+    protected function getDirtyAttributes(): array
     {
-        if (empty($this->getApprovalInclude())) {
+        if (empty($this->getApprovalAttributes())) {
             return $this->getDirty();
         }
 
         return collect($this->getDirty())
-            ->only($this->getApprovalInclude())
+            ->only($this->getApprovalAttributes())
             ->toArray();
+    }
+
+    public function getApprovalAttributes(): array
+    {
+        return $this->approvalAttributes ?? [];
     }
 
     /**
@@ -127,11 +89,33 @@ trait MustBeApproved
     }
 
     /**
-     * @return array
+     * Check if the Approval model been created already exists with a 'pending' state
      */
-    public function getApprovalInclude(): array
+    protected static function approvalModelExists($model): bool
     {
-        return $this->approvalInclude ?? [];
+        return Approval::where([
+            ['state', '=', ApprovalStatus::Pending],
+            ['new_data', '=', json_encode($model->getDirtyAttributes())],
+            ['original_data', '=', json_encode($model->getOriginalMatchingChanges())],
+        ])->exists();
+    }
+
+    /**
+     * Gets the original model data and only gets the keys that match the dirty attributes.
+     */
+    protected function getOriginalMatchingChanges(): array
+    {
+        return collect($this->getOriginal())
+            ->only(collect($this->getDirtyAttributes())->keys())
+            ->toArray();
+    }
+
+    /**
+     * The polymorphic relationship for the Approval model.
+     */
+    public function approvals(): MorphMany
+    {
+        return $this->morphMany(related: Approval::class, name: 'approvalable');
     }
 
     /**

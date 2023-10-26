@@ -19,11 +19,5 @@ uses(TestCase::class, RefreshDatabase::class)
             'name' => 'Chris',
             'meta' => 'red',
         ];
-
-        $this->fakeModelWithIncludedData = [
-            'name' => 'Neo',
-            'meta' => 'blue',
-            'excluded_field' => 'important_much',
-        ];
     })
     ->in(__DIR__);
