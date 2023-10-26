@@ -28,6 +28,10 @@ trait MustBeApproved
         {
             $noNeedToProceed = true;
 
+            /**
+             * If the 'approvalInclude' array is empty, we can skip
+             * this whole section
+             */
             if (!empty($model->getApprovalInclude())) {
                 /**
                  * If there is nothing changed besides the attributes
