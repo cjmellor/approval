@@ -190,6 +190,28 @@ If you don't want Model data to be approved, you can bypass it with the `without
 ```php
 $model->withoutApproval()->update(['title' => 'Some Title']);
 ```
+## Specify Approvable Attributes
+
+By default, all attributes of the model will go through the approval process, however if you only wish certain attributes to go through this process, you can specify them using the `approvalAttributes` property in your model.
+
+```php
+<?php
+
+use Cjmellor\Approval\Concerns\MustBeApproved;
+
+class Post extends Model
+{
+    use MustBeApproved;
+
+    protected array $approvalAttributes = ['name'];
+
+    // ...
+}
+```
+
+In this example, only the name attribute of this model will go through the approval process, all mutations on other attributes will bypass the approval process.
+
+If you omit the `approvalAttributes` property from your model, all attributes will go through the approval process.
 
 ## Testing
 
