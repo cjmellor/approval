@@ -1,8 +1,10 @@
 <?php
 
+use Cjmellor\Approval\Concerns\MustBeApproved;
 use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
+use Illuminate\Database\Eloquent\Model;
 
 it(description: 'stores the data correctly in the database')
     ->defer(
@@ -131,4 +133,36 @@ test(description: 'a Model cannot be persisted when given a flag', closure: func
 
     // check it was added to the fake_models table
     $this->assertDatabaseCount('fake_models', 0);
+});
+
+test(description: 'an approvals model is created when a model is created with MustBeApproved trait set and has the approvalInclude array set', closure: function () {
+    $model = new class extends Model
+    {
+        use MustBeApproved;
+
+        protected $table = 'fake_models';
+
+        protected array $approvalAttributes = ['name'];
+
+        protected $guarded = [];
+
+        public $timestamps = false;
+    };
+
+    // create a model
+    $model->create([
+        'name' => 'Neo',
+        'meta' => 'blue',
+    ]);
+
+    // there should only be an approval model for the 'name' attribute, the 'meta' should be stored
+    $this->assertDatabaseHas(table: Approval::class, data: [
+        'new_data' => json_encode(['name' => 'Neo']),
+        'original_data' => json_encode([]),
+    ]);
+
+    // Since the 'meta' attribute was not included in approvalInclude, it should be stored
+    $this->assertDatabaseHas(table: FakeModel::class, data: [
+        'meta' => 'blue',
+    ]);
 });

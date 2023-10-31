@@ -21,21 +21,71 @@ trait MustBeApproved
      */
     protected static function insertApprovalRequest($model)
     {
-        if (! $model->isApprovalBypassed()) {
-            /**
-             * Create the new Approval model
-             */
-            if (self::approvalModelExists($model)) {
-                return false;
+        $filteredDirty = $model->getDirtyAttributes();
+
+        if ($model->isApprovalBypassed() || empty($filteredDirty)) {
+            return;
+        }
+
+        $noNeedToProceed = true;
+        $approvalAttributes = $model->getApprovalAttributes();
+
+        if (! empty($approvalAttributes)) {
+            $noNeedToProceed = collect($model->getDirty())
+                ->except($approvalAttributes)
+                ->isEmpty();
+
+            if (! $noNeedToProceed) {
+                $noApprovalNeeded = collect($model->getDirty())
+                    ->except($approvalAttributes)
+                    ->toArray();
+
+                $model->discardChanges();
+
+                $model->forceFill($noApprovalNeeded);
             }
+        }
 
-            $model->approvals()->create([
-                'new_data' => $model->getDirty(),
-                'original_data' => $model->getOriginalMatchingChanges(),
-            ]);
-
+        if (self::approvalModelExists($model) && $noNeedToProceed) {
             return false;
         }
+
+        $model->approvals()->create([
+            'new_data' => $filteredDirty,
+            'original_data' => $model->getOriginalMatchingChanges(),
+        ]);
+
+        if ($noNeedToProceed) {
+            return false;
+        }
+        return;
+    }
+
+    /**
+     * Get the dirty attributes, but only those which should be included
+     */
+    protected function getDirtyAttributes(): array
+    {
+        if (empty($this->getApprovalAttributes())) {
+            return $this->getDirty();
+        }
+
+        return collect($this->getDirty())
+            ->only($this->getApprovalAttributes())
+            ->toArray();
+    }
+
+    public function getApprovalAttributes(): array
+    {
+        return $this->approvalAttributes ?? [];
+    }
+
+    /**
+     * Check is the approval can be bypassed.
+     */
+    public function isApprovalBypassed(): bool
+    {
+        return $this->bypassApproval;
     }
 
     /**
@@ -45,17 +95,9 @@ trait MustBeApproved
     {
         return Approval::where([
             ['state', '=', ApprovalStatus::Pending],
-            ['new_data', '=', json_encode($model->getDirty())],
+            ['new_data', '=', json_encode($model->getDirtyAttributes())],
             ['original_data', '=', json_encode($model->getOriginalMatchingChanges())],
         ])->exists();
-    }
-
-    /**
-     * The polymorphic relationship for the Approval model.
-     */
-    public function approvals(): MorphMany
-    {
-        return $this->morphMany(related: Approval::class, name: 'approvalable');
     }
 
     /**
@@ -64,16 +106,16 @@ trait MustBeApproved
     protected function getOriginalMatchingChanges(): array
     {
         return collect($this->getOriginal())
-            ->only(collect($this->getDirty())->keys())
+            ->only(collect($this->getDirtyAttributes())->keys())
             ->toArray();
     }
 
     /**
-     * Check is the approval can be bypassed.
+     * The polymorphic relationship for the Approval model.
      */
-    public function isApprovalBypassed(): bool
+    public function approvals(): MorphMany
     {
-        return $this->bypassApproval;
+        return $this->morphMany(related: Approval::class, name: 'approvalable');
     }
 
     /**
