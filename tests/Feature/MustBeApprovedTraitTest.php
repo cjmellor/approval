@@ -4,6 +4,7 @@ use Cjmellor\Approval\Concerns\MustBeApproved;
 use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
+use Cjmellor\Approval\Tests\Models\FakeModelWithArray;
 use Illuminate\Database\Eloquent\Model;
 
 it(description: 'stores the data correctly in the database')
@@ -164,5 +165,36 @@ test(description: 'an approvals model is created when a model is created with Mu
     // Since the 'meta' attribute was not included in approvalInclude, it should be stored
     $this->assertDatabaseHas(table: FakeModel::class, data: [
         'meta' => 'blue',
+    ]);
+});
+
+test(description: 'approve a attribute of the type Array', closure: function () {
+    $model = new FakeModelWithArray();
+
+    // create a model
+    $model->create([
+        'name' => 'Neo',
+        'data' => ['foo', 'bar']
+    ]);
+
+    // check if the data is stored correctly in the approval table
+    $this->assertDatabaseHas(table: Approval::class, data: [
+        'new_data' => json_encode(['name' => 'Neo', 'data' => json_encode(['foo', 'bar'])]),
+        'original_data' => json_encode([]),
+    ]);
+
+    // nothing should be in the 'fake_models_with_array' table
+    $this->assertDatabaseCount('fake_models_with_array', 0);
+
+    // approve the model
+    Approval::first()->approve();
+
+    // after approval, there should be in a entry in the 'fake_models_with_array' table
+    $this->assertDatabaseCount('fake_models_with_array', 1);
+
+    // After Approval, the contents of the database should look like this
+    $this->assertDatabaseHas(table: FakeModelWithArray::class, data: [
+        'name' => 'Neo',
+        'data' => ['foo', 'bar']
     ]);
 });
