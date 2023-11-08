@@ -195,6 +195,11 @@ test(description: 'approve a attribute of the type Array', closure: function () 
     // After Approval, the contents of the database should look like this
     $this->assertDatabaseHas(table: FakeModelWithArray::class, data: [
         'name' => 'Neo',
-        'data' => ['foo', 'bar']
+        'data' => json_encode(['foo', 'bar'])
     ]);
+
+    // doublecheck the model
+    $modelFromDatabase = FakeModelWithArray::firstWhere('name', 'Neo');
+    expect($modelFromDatabase->data)
+        ->toBe(['foo', 'bar']);
 });

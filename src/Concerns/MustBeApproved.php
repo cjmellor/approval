@@ -127,4 +127,20 @@ trait MustBeApproved
 
         return $this;
     }
+
+    /**
+     * Wrapper to access the castAttribute function
+     *
+     * @param $key
+     * @param $value
+     * @return mixed
+     */
+    public function callCastAttribute($key, $value): mixed
+    {
+        if (array_key_exists($key, $this->casts)) {
+            return $this->castAttribute($key, $value);
+        }
+
+        return $value;
+    }
 }
