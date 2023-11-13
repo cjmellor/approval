@@ -5,6 +5,8 @@ use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 it(description: 'stores the data correctly in the database')
     ->defer(
@@ -165,4 +167,60 @@ test(description: 'an approvals model is created when a model is created with Mu
     $this->assertDatabaseHas(table: FakeModel::class, data: [
         'meta' => 'blue',
     ]);
+});
+
+test(description: 'approve a attribute of the type Array', closure: function () {
+    Schema::create('fake_models_with_array', function (Blueprint $table) {
+        $table->id();
+        $table->string('name')->nullable();
+        $table->string('meta')->nullable();
+
+        $table->json('data')->nullable();
+    });
+
+    $model = new class extends Model
+    {
+        use MustBeApproved;
+
+        protected $table = 'fake_models_with_array';
+
+        protected $guarded = [];
+
+        public $timestamps = false;
+
+        protected $casts = ['data' => 'array'];
+    };
+
+    // create a model
+    $model->create([
+        'name' => 'Neo',
+        'data' => ['foo', 'bar'],
+    ]);
+
+    // check if the data is stored correctly in the approval table
+    $this->assertDatabaseHas(table: Approval::class, data: [
+        'new_data' => json_encode(['name' => 'Neo', 'data' => json_encode(['foo', 'bar'])]),
+        'original_data' => json_encode([]),
+    ]);
+
+    // nothing should be in the 'fake_models_with_array' table
+    $this->assertDatabaseCount('fake_models_with_array', 0);
+
+    // approve the model
+    Approval::first()->approve();
+
+    // after approval, there should be in an entry in the 'fake_models_with_array' table
+    $this->assertDatabaseCount('fake_models_with_array', 1);
+
+    // After Approval, the contents of the database should look like this
+    $this->assertDatabaseHas(table: 'fake_models_with_array', data: [
+        'name' => 'Neo',
+        'data' => json_encode(['foo', 'bar']),
+    ]);
+
+    // double check the model
+    $modelFromDatabase = $model->firstWhere('name', 'Neo');
+
+    expect($modelFromDatabase->data)
+        ->toBe(['foo', 'bar']);
 });
