@@ -2,6 +2,19 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.4.2 - 2023-11-13
+
+### What's Changed
+
+- added support for 'include attributes list'. by @gerb-ster in https://github.com/cjmellor/approval/pull/46
+- Bugfix array attributes by @gerb-ster in https://github.com/cjmellor/approval/pull/47
+
+### New Contributors
+
+- @gerb-ster made their first contribution in https://github.com/cjmellor/approval/pull/46
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.4.1...v1.4.2
+
 ## v1.4.1 - 2023-10-12
 
 ### What's Changed
