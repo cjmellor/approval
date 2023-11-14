@@ -3,7 +3,6 @@
 use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Events\ModelApproved;
 use Cjmellor\Approval\Events\ModelRejected;
-use Cjmellor\Approval\Events\ModelRolledBackEvent;
 use Cjmellor\Approval\Events\ModelSetPending;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
@@ -97,7 +96,7 @@ it(description: 'only changes the status of the requested model', closure: funct
 });
 
 test(description: 'An event is fired when a Model\'s state is changed', closure: function (string $state): void {
-    $fakeModel = FakeModel::create($this->fakeModelData);
+    FakeModel::create($this->fakeModelData);
 
     Event::fake();
 
