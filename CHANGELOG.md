@@ -2,6 +2,19 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.4.3 - 2024-02-17
+
+### What's Changed
+
+* feat: Audit Approvals by @cjmellor in https://github.com/cjmellor/approval/pull/51
+* Add model and user to all event constructors by @nunodonato in https://github.com/cjmellor/approval/pull/49
+
+### New Contributors
+
+* @nunodonato made their first contribution in https://github.com/cjmellor/approval/pull/49
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.4.2...v1.4.3
+
 ## v1.4.2 - 2023-11-13
 
 ### What's Changed
