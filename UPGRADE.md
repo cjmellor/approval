@@ -1,5 +1,19 @@
 # Upgrade Guide
 
+## v1.4.2 -> 1.4.3
+
+If you wish to audit which User set the state for the Model, you need to publish and run a new Migration.
+
+Run the `vendor:publish` command to bring in the new migration file:
+
+```shell
+php artisan vendor:publish
+```
+
+and choose `approval-migrations`
+
+Run `php artisan migrate`
+
 ## v1.3.1 -> v1.4.0
 
 To support the new `rollback` functionality, a new migration file is needed

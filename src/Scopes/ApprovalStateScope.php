@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\Scope;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Schema;
 
 class ApprovalStateScope implements Scope
 {
@@ -125,19 +126,21 @@ class ApprovalStateScope implements Scope
      */
     protected function updateApprovalState(Builder $builder, ApprovalStatus $state): int
     {
-        $model = $builder
-            ->find(id: $builder->getModel()->id);
-
         match ($state) {
             ApprovalStatus::Approved => Event::dispatch(new ModelApproved($model, auth()->user()) ),
             ApprovalStatus::Pending => Event::dispatch(new ModelSetPending($model, auth()->user())),
             ApprovalStatus::Rejected => Event::dispatch(new ModelRejected($model, auth()->user())),
         };
 
-        return $model
-            ->update([
-                'state' => $state,
-            ]);
+        $auditedData = ['state' => $state];
+
+        if (Schema::hasColumn($builder->getModel()->getTable(), 'audited_by')) {
+            $auditedData['audited_by'] = auth()->id();
+        }
+
+        return $builder
+            ->find(id: $builder->getModel()->id)
+            ->update($auditedData);
     }
 
     /**
@@ -149,7 +152,7 @@ class ApprovalStateScope implements Scope
     }
 
     /**
-     * Set state as 'rejected'
+     * Set the state as 'rejected'
      */
     protected function addReject(Builder $builder): void
     {

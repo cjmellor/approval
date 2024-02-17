@@ -83,6 +83,10 @@ Here is some info about the columns in the `approvals` table:
 
 `original_data` => All the fields in the Model before they were updated. This is a JSON column. This column is cast to the `AsArrayObject` [Cast](https://laravel.com/docs/9.x/eloquent-mutators#array-object-and-collection-casting)
 
+`rolled_back_at` => A timestamp of when this was last rolled back to its original state
+
+`audited_at` => The ID of the User who set the state
+
 If you want to check if the Model data will be bypassed, use the `isApprovalBypassed` method.
 
 ```php
