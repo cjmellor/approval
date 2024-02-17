@@ -105,7 +105,15 @@ class ApprovalStateScope implements Scope
                     $model = $model->find($modelId);
                 }
 
-                $model->forceFill($builder->getModel()->new_data->toArray());
+                $newData = $builder->getModel()->new_data->toArray();
+
+                // make sure we cast all attributes
+                foreach ($newData as $key => $value) {
+                    $newData[$key] = $model->callCastAttribute($key, $value);
+                }
+
+                $model->forceFill($newData);
+
                 $model->withoutApproval()->save();
             }
 
