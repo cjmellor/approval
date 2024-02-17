@@ -199,3 +199,36 @@ test(description: 'A Model can be Postponed unless a condition is met', closure:
 
     $this->assertDatabaseMissing(table: 'fake_models', data: $this->fakeModelData);
 });
+
+test(description: 'The model approver is listed correctly', closure: function () {
+    Schema::create('fake_users', callback: function (\Illuminate\Database\Schema\Blueprint $table) {
+        $table->id();
+        $table->string(column: 'name');
+        $table->string(column: 'email')->unique();
+        $table->string('password');
+    });
+
+    class FakeUser extends \Illuminate\Foundation\Auth\User
+    {
+        protected $guarded = [];
+        protected $table = 'fake_users';
+        public $timestamps = false;
+    }
+
+    $user = FakeUser::create([
+        'name' => 'Chris Mellor',
+        'email' => 'chris@mellor.pizza',
+        'password' => 'password',
+    ]);
+
+    $this->be($user);
+
+    FakeModel::create($this->fakeModelData);
+
+    $approval = Approval::first();
+    $approval->approve();
+
+    expect($approval)->fresh()->audited_by->toBe(expected: $user->id);
+
+    Schema::dropIfExists('fake_users');
+});
