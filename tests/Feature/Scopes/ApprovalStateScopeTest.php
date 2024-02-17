@@ -7,6 +7,7 @@ use Cjmellor\Approval\Events\ModelSetPending;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Schema;
 
 test('Check if an Approval Model is approved', closure: function (): void {
     $this->approvalData = [
@@ -201,7 +202,7 @@ test(description: 'A Model can be Postponed unless a condition is met', closure:
 });
 
 test(description: 'The model approver is listed correctly', closure: function () {
-    Schema::create('fake_users', callback: function (\Illuminate\Database\Schema\Blueprint $table) {
+    Schema::create('fake_users', callback: function (Illuminate\Database\Schema\Blueprint $table) {
         $table->id();
         $table->string(column: 'name');
         $table->string(column: 'email')->unique();
@@ -211,7 +212,9 @@ test(description: 'The model approver is listed correctly', closure: function ()
     class FakeUser extends \Illuminate\Foundation\Auth\User
     {
         protected $guarded = [];
+
         protected $table = 'fake_users';
+
         public $timestamps = false;
     }
 

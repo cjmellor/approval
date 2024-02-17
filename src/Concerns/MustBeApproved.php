@@ -58,7 +58,6 @@ trait MustBeApproved
         if ($noNeedToProceed) {
             return false;
         }
-
     }
 
     /**

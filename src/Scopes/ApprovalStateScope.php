@@ -127,9 +127,9 @@ class ApprovalStateScope implements Scope
     protected function updateApprovalState(Builder $builder, ApprovalStatus $state): int
     {
         match ($state) {
-            ApprovalStatus::Approved => Event::dispatch(new ModelApproved()),
-            ApprovalStatus::Pending => Event::dispatch(new ModelSetPending()),
-            ApprovalStatus::Rejected => Event::dispatch(new ModelRejected()),
+            ApprovalStatus::Approved => Event::dispatch(new ModelApproved($builder->getModel(), auth()->user())),
+            ApprovalStatus::Pending => Event::dispatch(new ModelSetPending($builder->getModel(), auth()->user())),
+            ApprovalStatus::Rejected => Event::dispatch(new ModelRejected($builder->getModel(), auth()->user())),
         };
 
         $auditedData = ['state' => $state];
