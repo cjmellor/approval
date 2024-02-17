@@ -7,6 +7,7 @@ use Cjmellor\Approval\Events\ModelSetPending;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Schema;
 
 test('Check if an Approval Model is approved', closure: function (): void {
     $this->approvalData = [
