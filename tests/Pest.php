@@ -18,6 +18,7 @@ uses(TestCase::class, RefreshDatabase::class)
         $this->fakeModelData = [
             'name' => 'Chris',
             'meta' => 'red',
+            'user_id' => auth()->id(),
         ];
     })
     ->in(__DIR__);

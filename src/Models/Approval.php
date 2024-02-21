@@ -75,7 +75,7 @@ class Approval extends Model
         }
     }
 
-    public function rollback(Closure $condition = null): void
+    public function rollback(Closure $condition = null, $bypass = true): void
     {
         if ($condition && ! $condition($this)) {
             return;
@@ -87,11 +87,10 @@ class Approval extends Model
             message: 'Cannot rollback an Approval that has not been approved.'
         );
 
-        $model = $this->approvalable;
-        $model->update($this->original_data->getArrayCopy());
+        $this->approvalable->withoutApproval()->update($this->original_data->getArrayCopy());
 
         $this->update([
-            'state' => ApprovalStatus::Pending,
+            'state' => $bypass ? $this->state : ApprovalStatus::Pending,
             'new_data' => $this->original_data,
             'original_data' => $this->new_data,
             'rolled_back_at' => now(),
