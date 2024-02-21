@@ -2,6 +2,14 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.4.4 - 2024-02-21
+
+### What's Changed
+
+* feat: Bypass Approving a Rollback by @cjmellor in https://github.com/cjmellor/approval/pull/53
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.4.3...v1.4.4
+
 ## v1.4.3 - 2024-02-17
 
 ### What's Changed
