@@ -23,6 +23,10 @@ trait MustBeApproved
     {
         $filteredDirty = $model->getDirtyAttributes();
 
+        if (auth()->check()) {
+            $filteredDirty['user_id'] = auth()->id();
+        }
+
         if ($model->isApprovalBypassed() || empty($filteredDirty)) {
             return;
         }

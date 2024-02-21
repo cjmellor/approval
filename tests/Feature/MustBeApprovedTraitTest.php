@@ -25,6 +25,7 @@ test(description: 'an approvals model is created when a model is created with Mu
         'new_data' => json_encode([
             'name' => 'Chris',
             'meta' => 'red',
+            'user_id' => null,
         ]),
         'original_data' => json_encode([]),
     ])
