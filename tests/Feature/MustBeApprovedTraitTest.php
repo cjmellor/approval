@@ -139,8 +139,7 @@ test(description: 'a Model cannot be persisted when given a flag', closure: func
 });
 
 test(description: 'an approvals model is created when a model is created with MustBeApproved trait set and has the approvalInclude array set', closure: function () {
-    $model = new class extends Model
-    {
+    $model = new class extends Model {
         use MustBeApproved;
 
         protected $table = 'fake_models';
@@ -179,8 +178,7 @@ test(description: 'approve a attribute of the type Array', closure: function () 
         $table->json('data')->nullable();
     });
 
-    $model = new class extends Model
-    {
+    $model = new class extends Model {
         use MustBeApproved;
 
         protected $table = 'fake_models_with_array';
@@ -219,9 +217,68 @@ test(description: 'approve a attribute of the type Array', closure: function () 
         'data' => json_encode(['foo', 'bar']),
     ]);
 
-    // double check the model
+    // double-check the model
     $modelFromDatabase = $model->firstWhere('name', 'Neo');
 
     expect($modelFromDatabase->data)
         ->toBe(['foo', 'bar']);
+});
+
+test(description: 'a Model can be rolled back when the data contains JSON fields', closure: function () {
+    Schema::create('posts', function (Blueprint $table) {
+        $table->id();
+        $table->string('title');
+        $table->string('content');
+        $table->json('config');
+        $table->timestamps();
+    });
+
+    $model = new class extends Model {
+        use MustBeApproved;
+
+        protected $table = 'posts';
+
+        protected $guarded = [];
+
+        protected $casts = ['config' => 'json'];
+    };
+
+    // create a model
+    $model->create([
+        'title' => 'My First Post',
+        'content' => 'This is my first post',
+        'config' => ['checked' => true],
+    ]);
+
+    // check if the data is stored correctly in the approval table
+    $this->assertDatabaseHas(table: Approval::class, data: [
+        'new_data' => json_encode([
+            'title' => 'My First Post',
+            'content' => 'This is my first post',
+            'config' => ['checked' => true],
+        ]),
+        'original_data' => json_encode([]),
+    ]);
+
+    // nothing should be in the 'posts' table
+    $this->assertDatabaseCount('posts', 0);
+
+    // approve the model
+    Approval::first()->approve();
+
+    // after approval, there should be in an entry in the 'posts' table
+    $this->assertDatabaseCount('posts', 1);
+
+    // After Approval, the contents of the database should look like this
+    $this->assertDatabaseHas(table: 'posts', data: [
+        'title' => 'My First Post',
+        'content' => 'This is my first post',
+        'config' => json_encode(['checked' => true]),
+    ]);
+
+    // double-check the model
+    $modelFromDatabase = $model->firstWhere('title', 'My First Post');
+
+    expect($modelFromDatabase->config)
+        ->toBe(['checked' => true]);
 });

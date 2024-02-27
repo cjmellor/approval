@@ -23,8 +23,10 @@ trait MustBeApproved
     {
         $filteredDirty = $model->getDirtyAttributes();
 
-        if (auth()->check()) {
-            $filteredDirty['user_id'] = auth()->id();
+        foreach ($filteredDirty as $key => $value) {
+            if (isset($model->casts[$key]) && $model->casts[$key] === 'json') {
+                $filteredDirty[$key] = json_decode(json: $value, associative: true);
+            }
         }
 
         if ($model->isApprovalBypassed() || empty($filteredDirty)) {
@@ -141,6 +143,12 @@ trait MustBeApproved
     public function callCastAttribute($key, $value): mixed
     {
         if (array_key_exists($key, $this->casts)) {
+            // If the value is already an array, return it as is
+            if (is_array($value)) {
+                return $value;
+            }
+
+            // Otherwise, cast the attribute to its defined type
             return $this->castAttribute($key, $value);
         }
 
