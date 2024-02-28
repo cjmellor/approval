@@ -2,6 +2,19 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.4.5 - 2024-02-28
+
+### What's Changed
+
+* fix: Rolling Back Model Fields with JSON Data by @cjmellor in https://github.com/cjmellor/approval/pull/55
+* Laravel 11.x Compatibility by @laravel-shift in https://github.com/cjmellor/approval/pull/56
+
+### New Contributors
+
+* @laravel-shift made their first contribution in https://github.com/cjmellor/approval/pull/56
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.4.4...v1.4.5
+
 ## v1.4.4 - 2024-02-21
 
 ### What's Changed
