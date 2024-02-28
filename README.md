@@ -163,11 +163,20 @@ Approval::find(1)->approve(persist: false);
 
 If you need to roll back an approval, you can use the `rollback` method.
 
+> [!NOTE]
+> By default, a Rollback will bypass been added back to the `approvals` table
+
 ```php
 Approval::first()->rollback();
 ```
 
 This will revert the data and set the state to `pending` and touch the `rolled_back_at` timestamp, so you have a record of when it was rolled back.
+
+If you want a Rollback to be re-approved, pass the `bypass` parameter as `false` to the `rollback` method
+
+```php
+Approval::first()->rollback(bypass: false); // default is true
+```
 
 ### Conditional Rollbacks
 
