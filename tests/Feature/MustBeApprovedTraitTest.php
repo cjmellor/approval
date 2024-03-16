@@ -300,7 +300,7 @@ test('the foreign key is extracted from the payload and stored in a separate col
 
         public $timestamps = false;
 
-        public function getForeignKeyName(): string
+        public function getApprovalForeignKeyName(): string
         {
             return 'user_id';
         }

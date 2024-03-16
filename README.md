@@ -49,7 +49,7 @@ The config allows you to change the polymorphic pivot name. It should end with `
 ## Usage
 
 > The package utilises Enums, so both PHP 8.1 and Laravel 9 must be used.
-> 
+>
 > **Note** This package does not approve/deny the data for you, it just stores the new/amended data into the database. It is up to you to decide how you implement a function to approve or deny the Model.
 
 Add the `MustBeApproved` trait to your Model and now the data will be stored in an `approvals` table, ready for you to approve or deny.
@@ -87,17 +87,54 @@ Here is some info about the columns in the `approvals` table:
 
 `audited_at` => The ID of the User who set the state
 
+`foreign_key` => A foreign key to the Model that the approval is for
+
+### Bypassing Approval Check
+
 If you want to check if the Model data will be bypassed, use the `isApprovalBypassed` method.
 
 ```php
 return $model->isApprovalBypassed();
 ```
 
+### Foreign Keys for New Models
+
+> [!NOTE]
+> It is recommended to read the below section on how foreign keys work in this package.
+
+> [!IMPORTANT]
+> By default, the foreign key will always be `user_id` because this is the most common foreign key used in Laravel.
+
+If you create a new Model directly via the Model, e.g.
+
+```php
+Post::create(['title' => 'Some Title']);
+```
+
+be sure to also add the foreign key to the Model, e.g.
+
+```php
+Post::create(['title' => 'Some Title', 'user_id' => 1]);
+```
+
+Now when the Model is sent for approval, the foreign key will be stored in the `foreign_key` column.
+
+### Customise the Foreign Key
+
+Your Model might not use the `user_id` as the foreign key, so you can customise it by adding this method to your Model:
+
+```php
+public function getApprovalForeignKeyName(): string
+{
+    return 'author_id';
+}
+```
+
 ## Scopes
 
 The package comes with some helper methods for the Builder, utilising a custom scope - `ApprovalStateScope`
 
-By default, all queries to the `approvals` table will return all the Models' no matter the state. 
+By default, all queries to the `approvals` table will return all the Models' no matter the state.
 
 There are three methods to help you retrieve the state of the Approval.
 
@@ -196,6 +233,7 @@ When a Model has been rolled back, a `ModelRolledBack` event will be fired with 
 public Model $approval,
 public Authenticatable|null $user,
 ````
+
 ## Disable Approvals
 
 If you don't want Model data to be approved, you can bypass it with the `withoutApproval` method.
@@ -203,6 +241,7 @@ If you don't want Model data to be approved, you can bypass it with the `without
 ```php
 $model->withoutApproval()->update(['title' => 'Some Title']);
 ```
+
 ## Specify Approvable Attributes
 
 By default, all attributes of the model will go through the approval process, however if you only wish certain attributes to go through this process, you can specify them using the `approvalAttributes` property in your model.

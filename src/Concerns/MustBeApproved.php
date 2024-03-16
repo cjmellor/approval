@@ -22,12 +22,11 @@ trait MustBeApproved
     protected static function insertApprovalRequest($model): ?bool
     {
         $filteredDirty = $model->getDirtyAttributes();
-
-        $foreignKey = $model->getForeignKeyName();
+        $foreignKey = $model->getApprovalForeignKeyName();
         $foreignKeyValue = $filteredDirty[$foreignKey] ?? null;
 
         // Remove the foreign key from the dirty attributes
-        unset($filteredDirty[$foreignKey]);
+         unset($filteredDirty[$foreignKey]);
 
         foreach ($filteredDirty as $key => $value) {
             if (isset($model->casts[$key]) && $model->casts[$key] === 'json') {
@@ -91,7 +90,7 @@ trait MustBeApproved
     /**
      * Get the name of the foreign key for the model.
      */
-    public function getForeignKeyName(): string
+    public function getApprovalForeignKeyName(): string
     {
         return 'user_id';
     }
