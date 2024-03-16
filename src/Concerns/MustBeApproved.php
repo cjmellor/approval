@@ -12,14 +12,20 @@ trait MustBeApproved
 
     public static function bootMustBeApproved(): void
     {
-        static::creating(callback: fn ($model) => static::insertApprovalRequest($model));
-        static::updating(callback: fn ($model) => static::insertApprovalRequest($model));
+        static::creating(callback: function ($model): ?bool {
+            if (! $model->user_id) {
+                $model->user_id = auth()->id();
+            }
+
+            return static::insertApprovalRequest($model);
+        });
+        static::updating(callback: fn ($model): ?bool => static::insertApprovalRequest($model));
     }
 
     /**
      * Create an Approval request before committing to the database.
      */
-    protected static function insertApprovalRequest($model)
+    protected static function insertApprovalRequest($model): ?bool
     {
         $filteredDirty = $model->getDirtyAttributes();
 
@@ -30,29 +36,23 @@ trait MustBeApproved
         }
 
         if ($model->isApprovalBypassed() || empty($filteredDirty)) {
-            return;
+            return null;
         }
 
-        $noNeedToProceed = true;
         $approvalAttributes = $model->getApprovalAttributes();
 
         if (! empty($approvalAttributes)) {
-            $noNeedToProceed = collect($model->getDirty())
+            $noApprovalNeeded = collect($model->getDirty())
                 ->except($approvalAttributes)
-                ->isEmpty();
+                ->toArray();
 
-            if (! $noNeedToProceed) {
-                $noApprovalNeeded = collect($model->getDirty())
-                    ->except($approvalAttributes)
-                    ->toArray();
-
+            if (! empty($noApprovalNeeded)) {
                 $model->discardChanges();
-
                 $model->forceFill($noApprovalNeeded);
             }
         }
 
-        if (self::approvalModelExists($model) && $noNeedToProceed) {
+        if (self::approvalModelExists($model) && empty($noApprovalNeeded)) {
             return false;
         }
 
@@ -61,9 +61,11 @@ trait MustBeApproved
             'original_data' => $model->getOriginalMatchingChanges(),
         ]);
 
-        if ($noNeedToProceed) {
+        if (empty($noApprovalNeeded)) {
             return false;
         }
+
+        return true;
     }
 
     /**

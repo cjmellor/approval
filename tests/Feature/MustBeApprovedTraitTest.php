@@ -139,7 +139,8 @@ test(description: 'a Model cannot be persisted when given a flag', closure: func
 });
 
 test(description: 'an approvals model is created when a model is created with MustBeApproved trait set and has the approvalInclude array set', closure: function () {
-    $model = new class extends Model {
+    $model = new class extends Model
+    {
         use MustBeApproved;
 
         protected $table = 'fake_models';
@@ -174,11 +175,12 @@ test(description: 'approve a attribute of the type Array', closure: function () 
         $table->id();
         $table->string('name')->nullable();
         $table->string('meta')->nullable();
-
         $table->json('data')->nullable();
+        $table->foreignId('user_id')->nullable();
     });
 
-    $model = new class extends Model {
+    $model = new class extends Model
+    {
         use MustBeApproved;
 
         protected $table = 'fake_models_with_array';
@@ -198,7 +200,11 @@ test(description: 'approve a attribute of the type Array', closure: function () 
 
     // check if the data is stored correctly in the approval table
     $this->assertDatabaseHas(table: Approval::class, data: [
-        'new_data' => json_encode(['name' => 'Neo', 'data' => json_encode(['foo', 'bar'])]),
+        'new_data' => json_encode([
+            'name' => 'Neo',
+            'data' => json_encode(['foo', 'bar']),
+            'user_id' => null,
+        ]),
         'original_data' => json_encode([]),
     ]);
 
@@ -230,10 +236,12 @@ test(description: 'a Model can be rolled back when the data contains JSON fields
         $table->string('title');
         $table->string('content');
         $table->json('config');
+        $table->foreignId('user_id')->nullable();
         $table->timestamps();
     });
 
-    $model = new class extends Model {
+    $model = new class extends Model
+    {
         use MustBeApproved;
 
         protected $table = 'posts';
@@ -256,6 +264,7 @@ test(description: 'a Model can be rolled back when the data contains JSON fields
             'title' => 'My First Post',
             'content' => 'This is my first post',
             'config' => ['checked' => true],
+            'user_id' => null,
         ]),
         'original_data' => json_encode([]),
     ]);
