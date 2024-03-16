@@ -25,7 +25,6 @@ test(description: 'an approvals model is created when a model is created with Mu
         'new_data' => json_encode([
             'name' => 'Chris',
             'meta' => 'red',
-            'user_id' => null,
         ]),
         'original_data' => json_encode([]),
     ])
@@ -203,7 +202,6 @@ test(description: 'approve a attribute of the type Array', closure: function () 
         'new_data' => json_encode([
             'name' => 'Neo',
             'data' => json_encode(['foo', 'bar']),
-            'user_id' => null,
         ]),
         'original_data' => json_encode([]),
     ]);
@@ -264,7 +262,6 @@ test(description: 'a Model can be rolled back when the data contains JSON fields
             'title' => 'My First Post',
             'content' => 'This is my first post',
             'config' => ['checked' => true],
-            'user_id' => null,
         ]),
         'original_data' => json_encode([]),
     ]);
@@ -290,4 +287,33 @@ test(description: 'a Model can be rolled back when the data contains JSON fields
 
     expect($modelFromDatabase->config)
         ->toBe(['checked' => true]);
+});
+
+test('the foreign key is extracted from the payload and stored in a separate column', function () {
+    $model = new class extends Model
+    {
+        use MustBeApproved;
+
+        protected $table = 'fake_models';
+
+        protected $guarded = [];
+
+        public $timestamps = false;
+
+        public function getForeignKeyName(): string
+        {
+            return 'user_id';
+        }
+    };
+
+    // create a model
+    $model->create([
+        'name' => 'Neo',
+    ]);
+
+    $this->assertDatabaseHas(table: Approval::class, data: [
+        'new_data' => json_encode(['name' => 'Neo']),
+        'original_data' => json_encode([]),
+        'foreign_key' => null,
+    ]);
 });

@@ -12,14 +12,8 @@ trait MustBeApproved
 
     public static function bootMustBeApproved(): void
     {
-        static::creating(callback: function ($model): ?bool {
-            if (! $model->user_id) {
-                $model->user_id = auth()->id();
-            }
-
-            return static::insertApprovalRequest($model);
-        });
-        static::updating(callback: fn ($model): ?bool => static::insertApprovalRequest($model));
+        static::creating(callback: fn($model): ?bool => static::insertApprovalRequest($model));
+        static::updating(callback: fn($model): ?bool => static::insertApprovalRequest($model));
     }
 
     /**
@@ -28,6 +22,12 @@ trait MustBeApproved
     protected static function insertApprovalRequest($model): ?bool
     {
         $filteredDirty = $model->getDirtyAttributes();
+
+        $foreignKey = $model->getForeignKeyName();
+        $foreignKeyValue = $filteredDirty[$foreignKey] ?? null;
+
+        // Remove the foreign key from the dirty attributes
+        unset($filteredDirty[$foreignKey]);
 
         foreach ($filteredDirty as $key => $value) {
             if (isset($model->casts[$key]) && $model->casts[$key] === 'json') {
@@ -59,6 +59,7 @@ trait MustBeApproved
         $model->approvals()->create([
             'new_data' => $filteredDirty,
             'original_data' => $model->getOriginalMatchingChanges(),
+            'foreign_key' => $foreignKeyValue,
         ]);
 
         if (empty($noApprovalNeeded)) {
@@ -85,6 +86,14 @@ trait MustBeApproved
     public function getApprovalAttributes(): array
     {
         return $this->approvalAttributes ?? [];
+    }
+
+    /**
+     * Get the name of the foreign key for the model.
+     */
+    public function getForeignKeyName(): string
+    {
+        return 'user_id';
     }
 
     /**
