@@ -1,5 +1,31 @@
 # Upgrade Guide
 
+## v1.4.3 -> v1.5.0
+
+A new migration needs to be run. Run:
+
+```shell
+php artisan vendor:publish
+```
+then
+
+```shell
+php artisan migrate
+```
+
+or you add the migration manually:
+
+```php
+Schema::table('approvals', function (Blueprint $table) {
+    $table->unsignedBigInteger('foreign_key')->nullable()->after('original_data');
+});
+```
+
+> [!IMPORTANT]
+> The namespace for the package has changed.
+
+Be sure to replace any instance of `Cjmellor\Approval` to `Approval\Approval`
+
 ## v1.4.2 -> 1.4.3
 
 If you wish to audit which User set the state for the Model, you need to publish and run a new Migration.
