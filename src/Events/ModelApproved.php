@@ -1,6 +1,6 @@
 <?php
 
-namespace Cjmellor\Approval\Events;
+namespace Approval\Approval\Events;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;

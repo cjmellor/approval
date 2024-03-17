@@ -1,10 +1,10 @@
 <?php
 
-namespace Cjmellor\Approval\Models;
+namespace Approval\Approval\Models;
 
-use Cjmellor\Approval\Enums\ApprovalStatus;
-use Cjmellor\Approval\Events\ModelRolledBackEvent;
-use Cjmellor\Approval\Scopes\ApprovalStateScope;
+use Approval\Approval\Enums\ApprovalStatus;
+use Approval\Approval\Events\ModelRolledBackEvent;
+use Approval\Approval\Scopes\ApprovalStateScope;
 use Closure;
 use Exception;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;

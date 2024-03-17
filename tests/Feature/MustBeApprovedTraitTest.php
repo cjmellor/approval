@@ -1,65 +1,60 @@
 <?php
 
-use Cjmellor\Approval\Concerns\MustBeApproved;
-use Cjmellor\Approval\Enums\ApprovalStatus;
-use Cjmellor\Approval\Models\Approval;
-use Cjmellor\Approval\Tests\Models\FakeModel;
+use Approval\Approval\Concerns\MustBeApproved;
+use Approval\Approval\Enums\ApprovalStatus;
+use Approval\Approval\Models\Approval;
+use Approval\Approval\Tests\Models\Comment;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 it(description: 'stores the data correctly in the database')
     ->defer(
-        fn (): Approval => Approval::create($this->approvalData)
+        fn(): Approval => Approval::create($this->approvalData)
     )->assertDatabaseHas('approvals', [
-        'approvalable_type' => FakeModel::class,
+        'approvalable_type' => Comment::class,
         'approvalable_id' => 1,
         'state' => ApprovalStatus::Pending,
     ]);
 
 test(description: 'an approvals model is created when a model is created with MustBeApproved trait set')
     // create a fake model
-    ->defer(callable: fn () => FakeModel::create($this->fakeModelData))
+    ->defer(callable: fn() => Comment::create($this->fakeModelData))
     // check it has been put in the approvals' table before the fake_models table
     ->assertDatabaseHas('approvals', [
         'new_data' => json_encode([
-            'name' => 'Chris',
-            'meta' => 'red',
-            'user_id' => null,
+            'comment' => 'I have a radio in my car',
         ]),
         'original_data' => json_encode([]),
     ])
     // this should be blank as the trait has intervened
-    ->assertDatabaseMissing('fake_models', [
-        'name' => 'Chris',
-        'meta' => 'red',
+    ->assertDatabaseMissing('comments', [
+        'comment' => 'I have a radio in my car',
     ]);
 
 test(description: 'a model is added when the "withoutApproval()" method is used', closure: function () {
     // build a query
-    $fakeModel = new FakeModel();
+    $fakeModel = new Comment();
 
-    $fakeModel->name = 'Bob';
-    $fakeModel->meta = 'green';
+    $fakeModel->comment = 'I like pie';
 
     // save the model, bypassing approval
     $fakeModel->withoutApproval()->save();
 
-    $this->assertDatabaseHas('fake_models', [
-        'name' => 'Bob',
-        'meta' => 'green',
+    $this->assertDatabaseHas('comments', [
+        'comment' => 'I like pie',
     ]);
 
     $this->assertDatabaseMissing('approvals', [
         'new_data' => json_encode([
-            'name' => 'Bob',
+            'comment' => 'I like pie',
         ]),
     ]);
 });
 
 test(description: 'an approval model cannot be duplicated', closure: function () {
     // create a fake model with data
-    FakeModel::create($this->fakeModelData);
+    Comment::create($this->fakeModelData);
 
     // check it was added to the db
     $this->assertDatabaseHas('approvals', [
@@ -67,7 +62,7 @@ test(description: 'an approval model cannot be duplicated', closure: function ()
     ]);
 
     // add another model with the same data...
-    FakeModel::create($this->fakeModelData);
+    Comment::create($this->fakeModelData);
 
     // as it is a duplicate, it should not be added to the DB
     $this->assertDatabaseCount('approvals', 1);
@@ -75,7 +70,7 @@ test(description: 'an approval model cannot be duplicated', closure: function ()
 
 test(description: 'a Model is added to the corresponding table when approved', closure: function () {
     // create a fake model with data
-    FakeModel::create($this->fakeModelData);
+    Comment::create($this->fakeModelData);
 
     // check it was added to the db
     $this->assertDatabaseHas('approvals', [
@@ -83,32 +78,32 @@ test(description: 'a Model is added to the corresponding table when approved', c
     ]);
 
     // check that it hasn't been added to the fake_models table
-    $this->assertDatabaseMissing('fake_models', $this->fakeModelData);
+    $this->assertDatabaseMissing('comments', $this->fakeModelData);
 
     // approve the model
     Approval::first()->approve();
 
     // check it was added to the fake_models table
-    $this->assertDatabaseHas('fake_models', $this->fakeModelData);
+    $this->assertDatabaseHas('comments', $this->fakeModelData);
 });
 
 test(description: 'A Model that is only being updated, is persisted correctly to the database', closure: function () {
     // create a fake model with data
-    (new FakeModel($this->fakeModelData))
+    (new Comment($this->fakeModelData))
         ->withoutApproval()
         ->save();
 
     // update the model with new data
-    FakeModel::first()
-        ->update(['name' => 'Bob']);
+    Comment::first()
+        ->update(['comment' => 'I like pie']);
 
     // check it was added to the db
     $this->assertDatabaseHas('approvals', [
         'new_data' => json_encode([
-            'name' => 'Bob',
+            'comment' => 'I like pie',
         ]),
         'original_data' => json_encode([
-            'name' => 'Chris',
+            'comment' => 'I have a radio in my car',
         ]),
     ]);
 
@@ -116,15 +111,14 @@ test(description: 'A Model that is only being updated, is persisted correctly to
     Approval::first()->approve();
 
     // check the fake_models table was updated correctly
-    $this->assertDatabaseHas('fake_models', [
-        'name' => 'Bob',
-        'meta' => 'red',
+    $this->assertDatabaseHas('comments', [
+        'comment' => 'I like pie',
     ]);
 });
 
 test(description: 'a Model cannot be persisted when given a flag', closure: function () {
     // create a fake model with data
-    FakeModel::create($this->fakeModelData);
+    Comment::create($this->fakeModelData);
 
     // check it was added to the db
     $this->assertDatabaseHas('approvals', [
@@ -135,37 +129,30 @@ test(description: 'a Model cannot be persisted when given a flag', closure: func
     Approval::first()->approve(false);
 
     // check it was added to the fake_models table
-    $this->assertDatabaseCount('fake_models', 0);
+    $this->assertDatabaseCount('comments', 0);
 });
 
 test(description: 'an approvals model is created when a model is created with MustBeApproved trait set and has the approvalInclude array set', closure: function () {
     $model = new class extends Model {
         use MustBeApproved;
 
-        protected $table = 'fake_models';
+        protected $table = 'comments';
 
-        protected array $approvalAttributes = ['name'];
+        protected array $approvalAttributes = ['comment'];
 
         protected $guarded = [];
-
-        public $timestamps = false;
     };
 
     // create a model
-    $model->create([
-        'name' => 'Neo',
-        'meta' => 'blue',
-    ]);
+    $model->create(['comment' => 'Hello']);
 
-    // there should only be an approval model for the 'name' attribute, the 'meta' should be stored
     $this->assertDatabaseHas(table: Approval::class, data: [
-        'new_data' => json_encode(['name' => 'Neo']),
+        'new_data' => json_encode(['comment' => 'Hello']),
         'original_data' => json_encode([]),
     ]);
 
-    // Since the 'meta' attribute was not included in approvalInclude, it should be stored
-    $this->assertDatabaseHas(table: FakeModel::class, data: [
-        'meta' => 'blue',
+    $this->assertDatabaseMissing(table: Comment::class, data: [
+        'comment' => 'Hello',
     ]);
 });
 
@@ -174,8 +161,8 @@ test(description: 'approve a attribute of the type Array', closure: function () 
         $table->id();
         $table->string('name')->nullable();
         $table->string('meta')->nullable();
-
         $table->json('data')->nullable();
+        $table->foreignId('user_id')->nullable();
     });
 
     $model = new class extends Model {
@@ -198,7 +185,10 @@ test(description: 'approve a attribute of the type Array', closure: function () 
 
     // check if the data is stored correctly in the approval table
     $this->assertDatabaseHas(table: Approval::class, data: [
-        'new_data' => json_encode(['name' => 'Neo', 'data' => json_encode(['foo', 'bar'])]),
+        'new_data' => json_encode([
+            'name' => 'Neo',
+            'data' => json_encode(['foo', 'bar']),
+        ]),
         'original_data' => json_encode([]),
     ]);
 
@@ -230,6 +220,7 @@ test(description: 'a Model can be rolled back when the data contains JSON fields
         $table->string('title');
         $table->string('content');
         $table->json('config');
+        $table->foreignId('user_id')->nullable();
         $table->timestamps();
     });
 
@@ -281,4 +272,32 @@ test(description: 'a Model can be rolled back when the data contains JSON fields
 
     expect($modelFromDatabase->config)
         ->toBe(['checked' => true]);
+});
+
+test('the foreign key is extracted from the payload and stored in a separate column', function () {
+    $model = new class extends Model {
+        use MustBeApproved;
+
+        protected $table = 'comments';
+
+        protected $guarded = [];
+
+        public $timestamps = false;
+
+        public function getApprovalForeignKeyName(): string
+        {
+            return 'user_id';
+        }
+    };
+
+    // create a model
+    $model->create([
+        'name' => 'Neo',
+    ]);
+
+    $this->assertDatabaseHas(table: Approval::class, data: [
+        'new_data' => json_encode(['name' => 'Neo']),
+        'original_data' => json_encode([]),
+        'foreign_key' => null,
+    ]);
 });

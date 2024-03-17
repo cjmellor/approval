@@ -1,11 +1,11 @@
 <?php
 
-namespace Cjmellor\Approval\Facades;
+namespace Approval\Approval\Facades;
 
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see \Cjmellor\Approval\Approval
+ * @see \Approval\Approval\Approval
  */
 class Approval extends Facade
 {

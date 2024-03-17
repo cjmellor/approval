@@ -1,11 +1,11 @@
 <?php
 
-namespace Cjmellor\Approval\Scopes;
+namespace Approval\Approval\Scopes;
 
-use Cjmellor\Approval\Enums\ApprovalStatus;
-use Cjmellor\Approval\Events\ModelApproved;
-use Cjmellor\Approval\Events\ModelRejected;
-use Cjmellor\Approval\Events\ModelSetPending;
+use Approval\Approval\Enums\ApprovalStatus;
+use Approval\Approval\Events\ModelApproved;
+use Approval\Approval\Events\ModelRejected;
+use Approval\Approval\Events\ModelSetPending;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;

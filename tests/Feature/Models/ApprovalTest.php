@@ -1,22 +1,21 @@
 <?php
 
-use Cjmellor\Approval\Enums\ApprovalStatus;
-use Cjmellor\Approval\Events\ModelRolledBackEvent;
-use Cjmellor\Approval\Tests\Models\FakeModel;
+use Approval\Approval\Enums\ApprovalStatus;
+use Approval\Approval\Events\ModelRolledBackEvent;
+use Approval\Approval\Tests\Models\Comment;
 use Illuminate\Support\Facades\Event;
 
 test(description: 'an Approved Model can be rolled back and doesn\'t bypass', closure: function (): void {
     // Build a query
-    $fakeModel = new FakeModel();
+    $fakeModel = new Comment();
 
-    $fakeModel->name = 'Bob';
-    $fakeModel->meta = 'green';
+    $fakeModel->comment = 'I like pie';
 
     // Save the model, bypassing approval
     $fakeModel->withoutApproval()->save();
 
     // Update a fresh instance of the model
-    $fakeModel->fresh()->update(['name' => 'Chris']);
+    $fakeModel->fresh()->update(['comment' => 'The weather is nice']);
 
     // Approve the new changes
     $fakeModel->fresh()->approvals()->first()->approve();
@@ -30,8 +29,8 @@ test(description: 'an Approved Model can be rolled back and doesn\'t bypass', cl
     // Check the model has been rolled back
     expect($fakeModel->fresh()->approvals()->first())
         ->state->toBe(expected: ApprovalStatus::Pending)
-        ->new_data->toMatchArray(['name' => 'Bob'])
-        ->original_data->toMatchArray(['name' => 'Chris'])
+        ->new_data->toMatchArray(['comment' => 'I like pie'])
+        ->original_data->toMatchArray(['comment' => 'The weather is nice'])
         ->rolled_back_at->not->toBeNull();
 
     // Assert the Events were fired
@@ -41,16 +40,15 @@ test(description: 'an Approved Model can be rolled back and doesn\'t bypass', cl
 
 test(description: 'an Approved Model can be rolled back and bypass', closure: function (): void {
     // Build a query
-    $fakeModel = new FakeModel();
+    $fakeModel = new Comment();
 
-    $fakeModel->name = 'Bob';
-    $fakeModel->meta = 'green';
+    $fakeModel->comment = 'I like pie';
 
     // Save the model, bypassing approval
     $fakeModel->withoutApproval()->save();
 
     // Update a fresh instance of the model
-    $fakeModel->fresh()->update(['name' => 'Chris']);
+    $fakeModel->fresh()->update(['comment' => 'The weather is nice']);
 
     // Approve the new changes
     $fakeModel->fresh()->approvals()->first()->approve();
@@ -61,23 +59,22 @@ test(description: 'an Approved Model can be rolled back and bypass', closure: fu
     // Check the model has been rolled back
     expect($fakeModel->fresh()->approvals()->first())
         ->state->toBe(expected: ApprovalStatus::Approved)
-        ->new_data->toMatchArray(['name' => 'Bob'])
-        ->original_data->toMatchArray(['name' => 'Chris'])
+        ->new_data->toMatchArray(['comment' => 'I like pie'])
+        ->original_data->toMatchArray(['comment' => 'The weather is nice'])
         ->rolled_back_at->not->toBeNull();
 });
 
 test(description: 'a rolled back Approval can be conditionally set', closure: function () {
     // Build a query
-    $fakeModel = new FakeModel();
+    $fakeModel = new Comment();
 
-    $fakeModel->name = 'Bob';
-    $fakeModel->meta = 'green';
+    $fakeModel->comment = 'I like pie';
 
     // Save the model, bypassing approval
     $fakeModel->withoutApproval()->save();
 
     // Update a fresh instance of the model
-    $fakeModel->fresh()->update(['name' => 'Chris']);
+    $fakeModel->fresh()->update(['comment' => 'The weather is nice']);
 
     // Approve the new changes
     $fakeModel->fresh()->approvals()->first()->approve();
@@ -88,7 +85,7 @@ test(description: 'a rolled back Approval can be conditionally set', closure: fu
     // Check the model has been rolled back
     expect($fakeModel->fresh()->approvals()->first())
         ->state->toBe(expected: ApprovalStatus::Pending)
-        ->new_data->toMatchArray(['name' => 'Bob'])
-        ->original_data->toMatchArray(['name' => 'Chris'])
+        ->new_data->toMatchArray(['comment' => 'I like pie'])
+        ->original_data->toMatchArray(['comment' => 'The weather is nice'])
         ->rolled_back_at->not->toBeNull();
 });

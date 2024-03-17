@@ -1,24 +1,22 @@
 <?php
 
-use Cjmellor\Approval\Enums\ApprovalStatus;
-use Cjmellor\Approval\Tests\Models\FakeModel;
-use Cjmellor\Approval\Tests\TestCase;
+use Approval\Approval\Enums\ApprovalStatus;
+use Approval\Approval\Tests\Models\Comment;
+use Approval\Approval\Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(TestCase::class, RefreshDatabase::class)
     ->beforeEach(hook: function (): void {
         $this->approvalData = [
-            'approvalable_type' => FakeModel::class,
+            'approvalable_type' => Comment::class,
             'approvalable_id' => 1,
             'state' => ApprovalStatus::Pending,
-            'new_data' => json_encode(['name' => 'Chris']),
-            'original_data' => json_encode(['name' => 'Bob']),
+            'new_data' => json_encode(['comment' => 'Hello']),
+            'original_data' => json_encode(['comment' => 'Goodbye']),
         ];
 
         $this->fakeModelData = [
-            'name' => 'Chris',
-            'meta' => 'red',
-            'user_id' => auth()->id(),
+            'comment' => 'I have a radio in my car',
         ];
     })
     ->in(__DIR__);

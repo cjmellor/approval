@@ -1,6 +1,6 @@
 <?php
 
-namespace Cjmellor\Approval\Enums;
+namespace Approval\Approval\Enums;
 
 enum ApprovalStatus: string
 {

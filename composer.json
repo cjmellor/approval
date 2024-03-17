@@ -21,20 +21,22 @@
         "spatie/laravel-package-tools": "^1.14.0"
     },
     "require-dev": {
-        "laravel/pint": "^1.0",
         "nunomaduro/collision": "^7.0|^8.0",
         "orchestra/testbench": "^7.0|^8.0|^9.0",
         "pestphp/pest": "^2.0",
-        "pestphp/pest-plugin-type-coverage": "^2.0"
+        "pestphp/pest-plugin-arch": "^2.0",
+        "pestphp/pest-plugin-laravel": "^2.0",
+        "pestphp/pest-plugin-type-coverage": "^2.0",
+        "laravel/pint": "^1.0"
     },
     "autoload": {
         "psr-4": {
-            "Cjmellor\\Approval\\": "src"
+            "Approval\\Approval\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Cjmellor\\Approval\\Tests\\": "tests"
+            "Approval\\Approval\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -43,18 +45,18 @@
         "test-coverage": "vendor/bin/pest --coverage"
     },
     "config": {
-        "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true
-        }
+        },
+        "sort-packages": true
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Cjmellor\\Approval\\ApprovalServiceProvider"
+                "Approval\\Approval\\ApprovalServiceProvider"
             ],
             "aliases": {
-                "Approval": "Cjmellor\\Approval\\Facades\\Approval"
+                "Approval": "Approval\\Approval\\Facades\\Approval"
             }
         }
     },
