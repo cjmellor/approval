@@ -5,14 +5,10 @@
     colors="true"
     xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.4/phpunit.xsd"
 >
-    <source>
-        <include>
-            <directory>src/</directory>
-        </include>
-    </source>
     <testsuites>
         <testsuite name="Test Suite">
-            <directory>tests</directory>
+            <directory>./src</directory>
+            <directory>./tests</directory>
         </testsuite>
     </testsuites>
 </phpunit>
