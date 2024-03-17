@@ -12,8 +12,8 @@ trait MustBeApproved
 
     public static function bootMustBeApproved(): void
     {
-        static::creating(callback: fn($model): ?bool => static::insertApprovalRequest($model));
-        static::updating(callback: fn($model): ?bool => static::insertApprovalRequest($model));
+        static::creating(callback: fn ($model): ?bool => static::insertApprovalRequest($model));
+        static::updating(callback: fn ($model): ?bool => static::insertApprovalRequest($model));
     }
 
     /**
@@ -26,7 +26,7 @@ trait MustBeApproved
         $foreignKeyValue = $filteredDirty[$foreignKey] ?? null;
 
         // Remove the foreign key from the dirty attributes
-         unset($filteredDirty[$foreignKey]);
+        unset($filteredDirty[$foreignKey]);
 
         foreach ($filteredDirty as $key => $value) {
             if (isset($model->casts[$key]) && $model->casts[$key] === 'json') {
