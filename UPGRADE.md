@@ -2,6 +2,9 @@
 
 ## v1.4.3 -> v1.5.0
 
+> [!IMPORTANT]
+> v1.5.0 will now only work with PHP versions >= 8.2. If you are using a version of PHP < 8.2, please use v1.4.5
+
 A new migration needs to be run. Run:
 
 ```shell
