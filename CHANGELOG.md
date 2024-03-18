@@ -2,6 +2,17 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.5.0 - 2024-03-18
+
+### What's Changed
+
+* feat: Extract Foreign Key from Payload by @cjmellor in https://github.com/cjmellor/approval/pull/57
+
+> [!IMPORTANT]
+This release requires that you're using >= PHP 8.2. If you're not, stick to the previous version.
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.4.5...v1.5.0
+
 ## v1.4.5 - 2024-02-28
 
 ### What's Changed
