@@ -21,11 +21,6 @@ Schema::table('approvals', function (Blueprint $table) {
 });
 ```
 
-> [!IMPORTANT]
-> The namespace for the package has changed.
-
-Be sure to replace any instance of `Cjmellor\Approval` to `Approval\Approval`
-
 ## v1.4.2 -> 1.4.3
 
 If you wish to audit which User set the state for the Model, you need to publish and run a new Migration.
