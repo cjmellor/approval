@@ -12,16 +12,21 @@ trait MustBeApproved
 
     public static function bootMustBeApproved(): void
     {
-        static::creating(callback: fn ($model) => static::insertApprovalRequest($model));
-        static::updating(callback: fn ($model) => static::insertApprovalRequest($model));
+        static::creating(callback: fn ($model): ?bool => static::insertApprovalRequest($model));
+        static::updating(callback: fn ($model): ?bool => static::insertApprovalRequest($model));
     }
 
     /**
      * Create an Approval request before committing to the database.
      */
-    protected static function insertApprovalRequest($model)
+    protected static function insertApprovalRequest($model): ?bool
     {
         $filteredDirty = $model->getDirtyAttributes();
+        $foreignKey = $model->getApprovalForeignKeyName();
+        $foreignKeyValue = $filteredDirty[$foreignKey] ?? null;
+
+        // Remove the foreign key from the dirty attributes
+        unset($filteredDirty[$foreignKey]);
 
         foreach ($filteredDirty as $key => $value) {
             if (isset($model->casts[$key]) && $model->casts[$key] === 'json') {
@@ -30,40 +35,37 @@ trait MustBeApproved
         }
 
         if ($model->isApprovalBypassed() || empty($filteredDirty)) {
-            return;
+            return null;
         }
 
-        $noNeedToProceed = true;
         $approvalAttributes = $model->getApprovalAttributes();
 
         if (! empty($approvalAttributes)) {
-            $noNeedToProceed = collect($model->getDirty())
+            $noApprovalNeeded = collect($model->getDirty())
                 ->except($approvalAttributes)
-                ->isEmpty();
+                ->toArray();
 
-            if (! $noNeedToProceed) {
-                $noApprovalNeeded = collect($model->getDirty())
-                    ->except($approvalAttributes)
-                    ->toArray();
-
+            if (! empty($noApprovalNeeded)) {
                 $model->discardChanges();
-
                 $model->forceFill($noApprovalNeeded);
             }
         }
 
-        if (self::approvalModelExists($model) && $noNeedToProceed) {
+        if (self::approvalModelExists($model) && empty($noApprovalNeeded)) {
             return false;
         }
 
         $model->approvals()->create([
             'new_data' => $filteredDirty,
             'original_data' => $model->getOriginalMatchingChanges(),
+            'foreign_key' => $foreignKeyValue,
         ]);
 
-        if ($noNeedToProceed) {
+        if (empty($noApprovalNeeded)) {
             return false;
         }
+
+        return true;
     }
 
     /**
@@ -83,6 +85,14 @@ trait MustBeApproved
     public function getApprovalAttributes(): array
     {
         return $this->approvalAttributes ?? [];
+    }
+
+    /**
+     * Get the name of the foreign key for the model.
+     */
+    public function getApprovalForeignKeyName(): string
+    {
+        return 'user_id';
     }
 
     /**

@@ -1,5 +1,29 @@
 # Upgrade Guide
 
+## v1.4.3 -> v1.5.0
+
+> [!IMPORTANT]
+> v1.5.0 will now only work with PHP versions >= 8.2. If you are using a version of PHP < 8.2, please use v1.4.5
+
+A new migration needs to be run. Run:
+
+```shell
+php artisan vendor:publish
+```
+then
+
+```shell
+php artisan migrate
+```
+
+or you add the migration manually:
+
+```php
+Schema::table('approvals', function (Blueprint $table) {
+    $table->unsignedBigInteger('foreign_key')->nullable()->after('original_data');
+});
+```
+
 ## v1.4.2 -> 1.4.3
 
 If you wish to audit which User set the state for the Model, you need to publish and run a new Migration.
