@@ -48,7 +48,8 @@ The config allows you to change the polymorphic pivot name. It should end with `
 
 ## Usage
 
-> The package utilises Enums, so both PHP 8.1 and Laravel 9 must be used.
+> [!NOTE]
+> The package utilises Enums, so both PHP >= 8.1 and Laravel 10 must be used.
 >
 > **Note** This package does not approve/deny the data for you, it just stores the new/amended data into the database. It is up to you to decide how you implement a function to approve or deny the Model.
 
