@@ -2,11 +2,8 @@
 
 namespace Cjmellor\Approval\Concerns;
 
-use Cjmellor\Approval\Enums\ApprovalStatus;
-use Cjmellor\Approval\Models\Approval;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 trait MustBeApprovedFactory
 {

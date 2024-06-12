@@ -12,7 +12,7 @@ class FakeModelFactory extends Factory
 
     protected $model = FakeModel::class;
 
-    public function definition():array
+    public function definition(): array
     {
         return [
             'name' => 'Bob',

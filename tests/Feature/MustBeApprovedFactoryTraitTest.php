@@ -1,12 +1,6 @@
 <?php
 
-use Cjmellor\Approval\Concerns\MustBeApproved;
-use Cjmellor\Approval\Enums\ApprovalStatus;
-use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 
 test(description: 'a model is added via a factory when the "withoutApproval()" method is used ', closure: function () {
     FakeModel::factory()->withoutApproval()->create();
