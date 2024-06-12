@@ -3,11 +3,14 @@
 namespace Cjmellor\Approval\Tests\Models;
 
 use Cjmellor\Approval\Concerns\MustBeApproved;
+use Cjmellor\Approval\Tests\Feature\Factories\FakeModelFactory;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class FakeModel extends Model
 {
-    use MustBeApproved;
+    use MustBeApproved, HasFactory;
 
     /**
      * @var array
@@ -18,4 +21,9 @@ class FakeModel extends Model
      * @var bool
      */
     public $timestamps = false;
+
+    protected static function newFactory(): Factory
+    {
+        return FakeModelFactory::new();
+    }
 }
