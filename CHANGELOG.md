@@ -2,6 +2,20 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.6.0 - 2024-06-12
+
+### What's Changed
+
+* build(deps): Bump dependabot/fetch-metadata from 1.6.0 to 2.0.0 by @dependabot in https://github.com/cjmellor/approval/pull/61
+* build(deps): Bump dependabot/fetch-metadata from 2.0.0 to 2.1.0 by @dependabot in https://github.com/cjmellor/approval/pull/62
+* Factory support by @Temepest74 in https://github.com/cjmellor/approval/pull/64
+
+### New Contributors
+
+* @Temepest74 made their first contribution in https://github.com/cjmellor/approval/pull/64
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.5.0...v1.6.0
+
 ## v1.5.0 - 2024-03-18
 
 ### What's Changed
