@@ -29,7 +29,7 @@ trait MustBeApproved
         unset($filteredDirty[$foreignKey]);
 
         foreach ($filteredDirty as $key => $value) {
-            if (isset($model->casts[$key]) && $model->casts[$key] === 'json') {
+            if (isset($model->casts[$key]) && ($model->casts[$key] === 'json' || $model->casts[$key] === 'array')) {
                 $filteredDirty[$key] = json_decode(json: $value, associative: true);
             }
         }

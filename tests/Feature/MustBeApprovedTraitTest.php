@@ -201,7 +201,7 @@ test(description: 'approve a attribute of the type Array', closure: function () 
     $this->assertDatabaseHas(table: Approval::class, data: [
         'new_data' => json_encode([
             'name' => 'Neo',
-            'data' => json_encode(['foo', 'bar']),
+            'data' => ['foo', 'bar'],
         ]),
         'original_data' => json_encode([]),
     ]);
@@ -316,4 +316,70 @@ test('the foreign key is extracted from the payload and stored in a separate col
         'original_data' => json_encode([]),
         'foreign_key' => null,
     ]);
+});
+
+test(description: 'approve a model with nested array attributes', closure: function () {
+    Schema::create('models_with_nested_arrays', function (Blueprint $table) {
+        $table->id();
+        $table->string('name')->nullable();
+        $table->json('settings')->nullable();
+        $table->json('metadata')->nullable();
+    });
+
+    $model = new class extends Model
+    {
+        use MustBeApproved;
+
+        protected $table = 'models_with_nested_arrays';
+        protected $guarded = [];
+        public $timestamps = false;
+
+        protected $casts = [
+            'settings' => 'array',
+            'metadata' => 'array'
+        ];
+    };
+
+    // Create a model with complex nested array data
+    $testData = [
+        'name' => 'Test Model',
+        'settings' => [
+            'preferences' => [
+                'theme' => 'dark',
+                'notifications' => true
+            ],
+            'features' => ['feature1', 'feature2']
+        ],
+        'metadata' => [
+            'tags' => ['important', 'test'],
+            'version' => 2
+        ]
+    ];
+
+    $model->create($testData);
+
+    // Verify data in approval table using database assertion instead of model property
+    $this->assertDatabaseHas(Approval::class, [
+        'new_data' => json_encode($testData),
+        'original_data' => json_encode([])
+    ]);
+
+    // Nothing should be in the main table yet
+    expect($model->count())->toBe(0);
+
+    // Approve the model
+    Approval::first()->approve();
+
+    // Verify the data after approval
+    $savedModel = $model->first();
+
+    expect($savedModel)
+        ->name->toBe('Test Model')
+        ->settings->toBeArray()
+        ->metadata->toBeArray()
+        ->and($savedModel->settings['preferences']['theme'])->toBe('dark')
+        ->and($savedModel->settings['preferences']['notifications'])->toBeTrue()
+        ->and($savedModel->settings['features'])->toMatchArray(['feature1', 'feature2'])
+        ->and($savedModel->metadata['tags'])->toMatchArray(['important', 'test'])
+        ->and($savedModel->metadata['version'])->toBe(2);
 });
