@@ -2,6 +2,15 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.6.1 - 2024-11-10
+
+### What's Changed
+
+* build(deps): Bump dependabot/fetch-metadata from 2.1.0 to 2.2.0 by @dependabot in https://github.com/cjmellor/approval/pull/65
+* Add comprehensive test for nested array attributes in approval process by @cjmellor in https://github.com/cjmellor/approval/pull/69
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.6.0...v1.6.1
+
 ## v1.6.0 - 2024-06-12
 
 ### What's Changed
