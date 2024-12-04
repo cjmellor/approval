@@ -2,6 +2,14 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.6.2 - 2024-12-04
+
+### What's Changed
+
+* Fixes foreign key by @Temepest74 in https://github.com/cjmellor/approval/pull/70
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.6.1...v1.6.2
+
 ## v1.6.1 - 2024-11-10
 
 ### What's Changed
