@@ -54,7 +54,7 @@ class ApprovalStateScope implements Scope
      */
     protected function addWithAnyState(Builder $builder): void
     {
-        $builder->macro('withAnyState', fn (Builder $builder): Builder => $builder->withoutGlobalScope($this));
+        $builder->macro('withAnyState', fn(Builder $builder): Builder => $builder->withoutGlobalScope($this));
     }
 
     /**
@@ -62,7 +62,7 @@ class ApprovalStateScope implements Scope
      */
     protected function addApproved(Builder $builder): void
     {
-        $builder->macro('approved', fn (Builder $builder): Builder => $builder
+        $builder->macro('approved', fn(Builder $builder): Builder => $builder
             ->withAnyState()
             ->where(column: 'state', operator: ApprovalStatus::Approved));
     }
@@ -72,7 +72,7 @@ class ApprovalStateScope implements Scope
      */
     protected function addPending(Builder $builder): void
     {
-        $builder->macro('pending', fn (Builder $builder): Builder => $builder
+        $builder->macro('pending', fn(Builder $builder): Builder => $builder
             ->withAnyState()
             ->where(column: 'state', operator: ApprovalStatus::Pending));
     }
@@ -82,7 +82,7 @@ class ApprovalStateScope implements Scope
      */
     protected function addRejected(Builder $builder): void
     {
-        $builder->macro('rejected', fn (Builder $builder): Builder => $builder
+        $builder->macro('rejected', fn(Builder $builder): Builder => $builder
             ->withAnyState()
             ->where(column: 'state', operator: ApprovalStatus::Rejected));
     }
@@ -106,6 +106,11 @@ class ApprovalStateScope implements Scope
                 }
 
                 $newData = $builder->getModel()->new_data->toArray();
+
+                $foreignKey = $builder->getModel()->foreign_key;
+                if ($foreignKey) {
+                    $newData[$model->getApprovalForeignKeyName()] = $foreignKey;
+                }
 
                 // make sure we cast all attributes
                 foreach ($newData as $key => $value) {
@@ -148,7 +153,7 @@ class ApprovalStateScope implements Scope
      */
     protected function addPostpone(Builder $builder): void
     {
-        $builder->macro('postpone', fn (Builder $builder): int => $this->updateApprovalState($builder, state: ApprovalStatus::Pending));
+        $builder->macro('postpone', fn(Builder $builder): int => $this->updateApprovalState($builder, state: ApprovalStatus::Pending));
     }
 
     /**
@@ -156,6 +161,6 @@ class ApprovalStateScope implements Scope
      */
     protected function addReject(Builder $builder): void
     {
-        $builder->macro('reject', fn (Builder $builder): int => $this->updateApprovalState($builder, state: ApprovalStatus::Rejected));
+        $builder->macro('reject', fn(Builder $builder): int => $this->updateApprovalState($builder, state: ApprovalStatus::Rejected));
     }
 }

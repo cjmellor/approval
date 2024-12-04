@@ -19,5 +19,11 @@ uses(TestCase::class, RefreshDatabase::class)
             'name' => 'Chris',
             'meta' => 'red',
         ];
+
+        $this->fakeUserData = [
+            'name' => 'Chris Mellor',
+            'email' => 'chris@mellor.pizza',
+            'password' => 'password',
+        ];
     })
     ->in(__DIR__);
