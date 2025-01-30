@@ -2,6 +2,19 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.6.3 - 2025-01-30
+
+### What's Changed
+
+* build(deps): Bump dependabot/fetch-metadata from 2.2.0 to 2.3.0 by @dependabot in https://github.com/cjmellor/approval/pull/71
+* Move spatie package tools to require instead of require-dev by @mojowill in https://github.com/cjmellor/approval/pull/72
+
+### New Contributors
+
+* @mojowill made their first contribution in https://github.com/cjmellor/approval/pull/72
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.6.2...v1.6.3
+
 ## v1.6.2 - 2024-12-04
 
 ### What's Changed
