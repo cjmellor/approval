@@ -75,7 +75,7 @@ class Approval extends Model
         }
     }
 
-    public function rollback(Closure $condition = null, $bypass = true): void
+    public function rollback(?Closure $condition = null, $bypass = true): void
     {
         if ($condition && ! $condition($this)) {
             return;
