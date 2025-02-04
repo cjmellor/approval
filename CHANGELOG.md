@@ -2,6 +2,14 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.6.4 - 2025-02-04
+
+### What's Changed
+
+* Fix Type Error by @mojowill in https://github.com/cjmellor/approval/pull/73
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.6.3...v1.6.4
+
 ## v1.6.3 - 2025-01-30
 
 ### What's Changed
