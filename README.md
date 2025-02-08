@@ -182,9 +182,10 @@ $approval->postponeUnless(false);
 Once a Model's state has been changed, an event will be fired.
 
 ```php
-ModelApproved::class
-ModelPostponed::class
-ModelRejected::class
+- ModelApproved::class
+- ModelPostponed::class
+- ModelRejected::class
+- ApprovalCreated::class
 ```
 
 ### Persisting data
