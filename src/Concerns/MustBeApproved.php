@@ -3,8 +3,10 @@
 namespace Cjmellor\Approval\Concerns;
 
 use Cjmellor\Approval\Enums\ApprovalStatus;
+use Cjmellor\Approval\Events\ApprovalCreated;
 use Cjmellor\Approval\Models\Approval;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\Event;
 
 trait MustBeApproved
 {
@@ -55,11 +57,13 @@ trait MustBeApproved
             return false;
         }
 
-        $model->approvals()->create([
+        $approval = $model->approvals()->create([
             'new_data' => $filteredDirty,
             'original_data' => $model->getOriginalMatchingChanges(),
             'foreign_key' => $foreignKeyValue,
         ]);
+
+        Event::dispatch(new ApprovalCreated($approval, auth()->user())); // Dispatch the event
 
         if (empty($noApprovalNeeded)) {
             return false;
@@ -145,10 +149,6 @@ trait MustBeApproved
 
     /**
      * Wrapper to access the castAttribute function
-     *
-     * @param $key
-     * @param $value
-     * @return mixed
      */
     public function callCastAttribute($key, $value): mixed
     {

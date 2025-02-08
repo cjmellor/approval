@@ -2,10 +2,13 @@
 
 use Cjmellor\Approval\Concerns\MustBeApproved;
 use Cjmellor\Approval\Enums\ApprovalStatus;
+use Cjmellor\Approval\Events\ApprovalCreated;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
+use Cjmellor\Approval\Tests\Models\FakeUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 
 it(description: 'stores the data correctly in the database')
@@ -16,6 +19,22 @@ it(description: 'stores the data correctly in the database')
         'approvalable_id' => 1,
         'state' => ApprovalStatus::Pending,
     ]);
+
+test(description: 'an ApprovalCreated event is dispatched when a model is created with MustBeApproved trait set', closure: function () {
+    // Arrange
+    Event::fake([ApprovalCreated::class]);
+    $user = FakeUser::create($this->fakeUserData);
+    $this->be($user);
+
+    // Act
+    FakeModel::create($this->fakeModelData);
+
+    // Assert
+    Event::assertDispatched(function (ApprovalCreated $event) {
+        return $event->approval->new_data->toArray() === $this->fakeModelData
+            && $event->user->id === auth()->id();
+    });
+});
 
 test(description: 'an approvals model is created when a model is created with MustBeApproved trait set')
     // create a fake model
@@ -36,7 +55,7 @@ test(description: 'an approvals model is created when a model is created with Mu
 
 test(description: 'a model is added when the "withoutApproval()" method is used', closure: function () {
     // build a query
-    $fakeModel = new FakeModel();
+    $fakeModel = new FakeModel;
 
     $fakeModel->name = 'Bob';
     $fakeModel->meta = 'green';
@@ -54,6 +73,30 @@ test(description: 'a model is added when the "withoutApproval()" method is used'
             'name' => 'Bob',
         ]),
     ]);
+});
+
+test(description: 'an ApprovalCreated event is dispatched when a model is updated with MustBeApproved trait set', closure: function () {
+    // Arrange
+    Event::fake([ApprovalCreated::class]);
+
+    $user = FakeUser::create($this->fakeUserData);
+    $this->be($user);
+
+    $model = new FakeModel;
+
+    $model->name = 'Bob';
+    $model->meta = 'green';
+
+    $model->withoutApproval()->save();
+
+    // Act
+    $model->fresh()->update(['name' => 'Chris']);
+
+    // Assert
+    Event::assertDispatched(function (ApprovalCreated $event) {
+        return $event->approval->new_data->toArray() === ['name' => 'Chris']
+            && $event->user->id === auth()->id();
+    });
 });
 
 test(description: 'an approval model cannot be duplicated', closure: function () {
@@ -331,12 +374,14 @@ test(description: 'approve a model with nested array attributes', closure: funct
         use MustBeApproved;
 
         protected $table = 'models_with_nested_arrays';
+
         protected $guarded = [];
+
         public $timestamps = false;
 
         protected $casts = [
             'settings' => 'array',
-            'metadata' => 'array'
+            'metadata' => 'array',
         ];
     };
 
@@ -346,14 +391,14 @@ test(description: 'approve a model with nested array attributes', closure: funct
         'settings' => [
             'preferences' => [
                 'theme' => 'dark',
-                'notifications' => true
+                'notifications' => true,
             ],
-            'features' => ['feature1', 'feature2']
+            'features' => ['feature1', 'feature2'],
         ],
         'metadata' => [
             'tags' => ['important', 'test'],
-            'version' => 2
-        ]
+            'version' => 2,
+        ],
     ];
 
     $model->create($testData);
@@ -361,7 +406,7 @@ test(description: 'approve a model with nested array attributes', closure: funct
     // Verify data in approval table using database assertion instead of model property
     $this->assertDatabaseHas(Approval::class, [
         'new_data' => json_encode($testData),
-        'original_data' => json_encode([])
+        'original_data' => json_encode([]),
     ]);
 
     // Nothing should be in the main table yet
