@@ -2,6 +2,14 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.6.5 - 2025-02-08
+
+### What's Changed
+
+* feature(events): add new ApprovalCreated event by @cjmellor in https://github.com/cjmellor/approval/pull/76
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.6.4...v1.6.5
+
 ## v1.6.4 - 2025-02-04
 
 ### What's Changed
