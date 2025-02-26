@@ -2,6 +2,14 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v1.6.6 - 2025-02-26
+
+### What's Changed
+
+* Laravel 12.x Compatibility by @laravel-shift in https://github.com/cjmellor/approval/pull/77
+
+**Full Changelog**: https://github.com/cjmellor/approval/compare/v1.6.5...v1.6.6
+
 ## v1.6.5 - 2025-02-08
 
 ### What's Changed
