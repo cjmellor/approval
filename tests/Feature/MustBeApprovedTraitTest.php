@@ -57,31 +57,28 @@ test(description: 'check the creator field if user is authenticated', closure: f
     $user = FakeUser::create($this->fakeUserData);
     $this->be($user);
 
-    $fakeModel = new FakeModel;
-
+    $fakeModel = new FakeModel();
     $fakeModel->name = 'Bob';
-
     $fakeModel->save();
 
     $this->assertDatabaseHas(
-        'approvals',
-        [
+        table: 'approvals',
+        data: [
             'creator_id' => 1,
-            'creator_type' => 'Cjmellor\Approval\Tests\Models\FakeUser'
+            'creator_type' => FakeUser::class,
         ]
     );
 });
 
 test(description: 'check the creator field if no user is authenticated', closure: function () {
-    $fakeModel = new FakeModel;
+    $fakeModel = new FakeModel();
 
     $fakeModel->name = 'Bob';
-
     $fakeModel->save();
 
     $this->assertDatabaseHas(
-        'approvals',
-        [
+        table: 'approvals',
+        data: [
             'creator_id' => null,
             'creator_type' => null
         ]
