@@ -57,13 +57,12 @@ trait MustBeApproved
             return false;
         }
 
-        $creator = \auth()->user();
         $approval = $model->approvals()->create([
             'new_data' => $filteredDirty,
             'original_data' => $model->getOriginalMatchingChanges(),
+            'creator_id' => auth()->id(),
+            'creator_type' => auth()->user() ? get_class(auth()->user()) : null,
             'foreign_key' => $foreignKeyValue,
-            'creator_id' => $creator?->id,
-            'creator_type' => $creator ? get_class($creator) : null,
         ]);
 
         Event::dispatch(new ApprovalCreated($approval, auth()->user())); // Dispatch the event
