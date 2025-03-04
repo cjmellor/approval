@@ -2,7 +2,7 @@
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/cjmellor/approval/run-pest.yml?branch=main&label=tests&style=for-the-badge&color=rgb%28134%20239%20128%29)](https://github.com/cjmellor/approval/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/cjmellor/approval.svg?color=rgb%28249%20115%2022%29&style=for-the-badge)](https://packagist.org/packages/cjmellor/approval)
 ![Packagist PHP Version](https://img.shields.io/packagist/dependency-v/cjmellor/approval/php?color=rgb%28165%20180%20252%29&logo=php&logoColor=rgb%28165%20180%20252%29&style=for-the-badge)
-![Laravel Version](https://img.shields.io/badge/laravel-^10-rgb(235%2068%2050)?style=for-the-badge&logo=laravel)
+![Laravel Version](<https://img.shields.io/badge/laravel-^10-rgb(235%2068%2050)?style=for-the-badge&logo=laravel>)
 
 Approval is a Laravel package that provides a simple way to approve new Model data before it is persisted.
 
@@ -89,6 +89,10 @@ Here is some info about the columns in the `approvals` table:
 `audited_at` => The ID of the User who set the state
 
 `foreign_key` => A foreign key to the Model that the approval is for
+
+`creator_id` => The ID of the model who requested the approval
+
+`creator_type` => The class name of the model who requested the approval
 
 ### Bypassing Approval Check
 
@@ -192,7 +196,7 @@ Once a Model's state has been changed, an event will be fired.
 
 By default, once you approve a Model, it will be inserted into the database.
 
-If you don't want to persist to the database on approval, set a `false` flag on the  `approve` method.
+If you don't want to persist to the database on approval, set a `false` flag on the `approve` method.
 
 ```php
 Approval::find(1)->approve(persist: false);
@@ -234,7 +238,7 @@ When a Model has been rolled back, a `ModelRolledBack` event will be fired with 
 
 public Model $approval,
 public Authenticatable|null $user,
-````
+```
 
 ## Disable Approvals
 
@@ -283,7 +287,7 @@ Please open a PR with as much detail as possible about what you're trying to ach
 
 ## Credits
 
-- [Chris Mellor](https://github.com/cjmellor)
+-   [Chris Mellor](https://github.com/cjmellor)
 
 ## License
 

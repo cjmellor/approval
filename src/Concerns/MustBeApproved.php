@@ -60,6 +60,8 @@ trait MustBeApproved
         $approval = $model->approvals()->create([
             'new_data' => $filteredDirty,
             'original_data' => $model->getOriginalMatchingChanges(),
+            'creator_id' => auth()->id(),
+            'creator_type' => auth()->user() ? get_class(auth()->user()) : null,
             'foreign_key' => $foreignKeyValue,
         ]);
 
