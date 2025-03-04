@@ -33,6 +33,11 @@ class Approval extends Model
         return $this->morphTo();
     }
 
+    public function creator(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
     public function approveIf(bool $boolean): void
     {
         if ($boolean) {

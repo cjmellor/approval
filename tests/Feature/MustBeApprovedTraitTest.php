@@ -53,6 +53,41 @@ test(description: 'an approvals model is created when a model is created with Mu
         'meta' => 'red',
     ]);
 
+test(description: 'check the creator field if user is authenticated', closure: function () {
+    $user = FakeUser::create($this->fakeUserData);
+    $this->be($user);
+
+    $fakeModel = new FakeModel;
+
+    $fakeModel->name = 'Bob';
+
+    $fakeModel->save();
+
+    $this->assertDatabaseHas(
+        'approvals',
+        [
+            'creator_id' => 1,
+            'creator_type' => 'Cjmellor\Approval\Tests\Models\FakeUser'
+        ]
+    );
+});
+
+test(description: 'check the creator field if no user is authenticated', closure: function () {
+    $fakeModel = new FakeModel;
+
+    $fakeModel->name = 'Bob';
+
+    $fakeModel->save();
+
+    $this->assertDatabaseHas(
+        'approvals',
+        [
+            'creator_id' => null,
+            'creator_type' => null
+        ]
+    );
+});
+
 test(description: 'a model is added when the "withoutApproval()" method is used', closure: function () {
     // build a query
     $fakeModel = new FakeModel;
