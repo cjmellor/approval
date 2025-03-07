@@ -33,6 +33,32 @@ class Approval extends Model
         return $this->morphTo();
     }
 
+    public function creator(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    public function requestor(): MorphTo
+    {
+        return $this->morphTo('creator');
+    }
+
+    public function getRequestorAttribute()
+    {
+        return $this->requestor()->first();
+    }
+
+    public function scopeRequestedBy($query, $requestor)
+    {
+        return $query->where('creator_type', get_class($requestor))
+                     ->where('creator_id', $requestor->getKey());
+    }
+
+    public function wasRequestedBy($requestor): bool
+    {
+        return $this->requestor()->is($requestor);
+    }
+
     public function approveIf(bool $boolean): void
     {
         if ($boolean) {
