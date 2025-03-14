@@ -251,6 +251,83 @@ public Model $approval,
 public Authenticatable|null $user,
 ```
 
+## Time-Based Approvals
+
+The package supports automatic actions for approvals that aren't completed within a set time frame.
+
+### Setting Expiration Times
+
+You can set an expiration time on any approval:
+
+```php
+// Set expiration in hours (most common)
+Approval::find(1)->expiresIn(hours: 24);
+
+// Set expiration in minutes
+Approval::find(1)->expiresIn(minutes: 30);
+
+// Set expiration in days
+Approval::find(1)->expiresIn(days: 7);
+
+// Set specific expiration datetime
+Approval::find(1)->expiresIn(datetime: now()->addWeek());
+```
+
+### Automatic Actions
+
+You can define what happens when an approval expires:
+
+```php
+// Automatically reject when expired
+Approval::find(1)->expiresIn(hours: 48)->thenReject();
+
+// Automatically postpone (set to pending) when expired
+Approval::find(1)->expiresIn(hours: 48)->thenPostpone();
+
+// Use a custom action through event listeners
+Approval::find(1)->expiresIn(hours: 48)->thenDo(function($approval) {
+    // This callback is for documentation only
+    // Implement an event listener for ApprovalExpired event
+});
+```
+
+### Processing Expired Approvals
+
+To process expired approvals, add this command to your scheduler:
+
+```php
+// In App\Console\Kernel.php
+protected function schedule(Schedule $schedule)
+{
+    $schedule->command('approval:process-expired')->everyMinute();
+}
+```
+
+### Querying Expirations
+
+You can query approvals based on their expiration status:
+
+```php
+// Get all expired approvals
+Approval::expired()->get();
+
+// Get all non-expired approvals (including those with no expiration)
+Approval::notExpired()->get();
+
+// Get all approvals that have an expiration set
+Approval::hasExpiration()->get();
+
+// Check if a specific approval is expired
+$approval->isExpired();
+```
+
+### Events
+
+When an approval expires and is processed, these events are fired:
+
+- `ApprovalExpired`: Fired for all expired approvals
+- Followed by the specific action event (`ModelRejected`, `ModelSetPending`, etc.)
+
 ## Disable Approvals
 
 If you don't want Model data to be approved, you can bypass it with the `withoutApproval` method.
