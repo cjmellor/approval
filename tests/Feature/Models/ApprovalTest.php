@@ -321,3 +321,35 @@ test(description: 'can process expired approvals', closure: function () {
     Event::assertDispatched(event: ModelRejected::class, callback: 1);
     Event::assertDispatched(event: ModelSetPending::class, callback: 1);
 });
+
+test(description: 'artisan command processes expired approvals', closure: function () {
+    // Create an expired approval
+    FakeModel::create([
+        'name' => 'Test Model',
+        'meta' => 'red',
+    ]);
+
+    $approval = Approval::first();
+    $approval->expiresIn(datetime: now()->subHour())->thenReject();
+
+    // Fake events
+    Event::fake([
+        ApprovalExpired::class,
+        ModelRejected::class,
+    ]);
+
+    // Run the command
+    $this->artisan(command: 'approval:process-expired')
+        ->expectsOutput(output: '1 expired approval(s) processed successfully.')
+        ->assertExitCode(exitCode: 0);
+
+    // Verify approval was processed
+    expect($approval->fresh()->state->value)
+        ->toBe(expected: 'rejected')
+        ->and($approval->fresh()->actioned_at)
+        ->not->toBeNull();
+
+    // Verify the events were dispatched
+    Event::assertDispatched(event: ApprovalExpired::class, callback: 1);
+    Event::assertDispatched(event: ModelRejected::class, callback: 1);
+});

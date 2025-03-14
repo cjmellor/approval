@@ -2,6 +2,7 @@
 
 namespace Cjmellor\Approval;
 
+use Cjmellor\Approval\Console\Commands\ProcessExpiredApprovalsCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -12,6 +13,7 @@ class ApprovalServiceProvider extends PackageServiceProvider
         $package
             ->name(name: 'approval')
             ->hasConfigFile()
+            ->hasCommand(commandClassName: ProcessExpiredApprovalsCommand::class)
             ->hasMigrations([
                 '2022_02_12_195950_create_approvals_table',
                 '2023_10_09_204810_add_rolled_back_at_column_to_approvals_table',

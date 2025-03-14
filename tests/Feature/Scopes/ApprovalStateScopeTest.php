@@ -221,7 +221,7 @@ test(description: 'The model foreign key is set correctly', closure: function ()
 
     $fakeModelData = [
         ...$this->fakeModelData,
-        'user_id' => $user->id
+        'user_id' => $user->id,
     ];
 
     FakeModel::create($fakeModelData);
@@ -232,7 +232,27 @@ test(description: 'The model foreign key is set correctly', closure: function ()
     $this->assertDatabaseHas(
         'fake_models',
         [
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]
     );
+});
+
+test(description: 'can query expired and non-expired approvals', closure: function () {
+    // Create expired approval
+    FakeModel::create(['name' => 'Expired Model', 'meta' => 'red']);
+    $expiredApproval = Approval::first();
+    $expiredApproval->expiresIn(datetime: now()->subHour());
+
+    // Create non-expired approval
+    FakeModel::create(['name' => 'Active Model', 'meta' => 'blue']);
+    $activeApproval = Approval::orderByDesc(column: 'id')->first();
+    $activeApproval->expiresIn(datetime: now()->addHour());
+
+    // Create approval with no expiration
+    FakeModel::create(['name' => 'No Expiry Model', 'meta' => 'green']);
+
+    // Test queries
+    expect(Approval::expired()->count())->toBe(expected: 1);
+    expect(Approval::notExpired()->count())->toBe(expected: 2); // Includes non-expiring approvals
+    expect(Approval::hasExpiration()->count())->toBe(expected: 2); // Only those with expiration set
 });
