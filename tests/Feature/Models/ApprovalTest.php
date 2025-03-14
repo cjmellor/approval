@@ -1,7 +1,10 @@
 <?php
 
 use Cjmellor\Approval\Enums\ApprovalStatus;
+use Cjmellor\Approval\Events\ApprovalExpired;
+use Cjmellor\Approval\Events\ModelRejected;
 use Cjmellor\Approval\Events\ModelRolledBackEvent;
+use Cjmellor\Approval\Events\ModelSetPending;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
 use Cjmellor\Approval\Tests\Models\FakeUser;
@@ -241,4 +244,80 @@ test(description: 'can check if an approval is expired', closure: function () {
     // Set expiration to a future time
     $approval->expiresIn(datetime: now()->addHour());
     expect($approval->isExpired())->toBeFalse();
+});
+
+test('can set automatic actions on expiration', function (string $method, string $expectedAction) {
+    FakeModel::create($this->fakeModelData);
+
+    $approval = Approval::first();
+
+    // Set up automatic action on expiration
+    $approval->expiresIn(hours: 1)->$method();
+
+    // Verify the expiration action is set correctly
+    expect($approval->fresh()->expiration_action)->toBe($expectedAction);
+})->with([
+    ['thenReject', 'reject'],
+    ['thenPostpone', 'postpone'],
+]);
+
+test(description: 'can set custom action on expiration', closure: function () {
+    FakeModel::create($this->fakeModelData);
+    $approval = Approval::first();
+
+    // Set up a custom callback for expiration
+    $approval->expiresIn(hours: 1)->thenDo(
+        // This would be executed by the scheduler
+        // Just for testing
+        fn ($approval): true => true
+    );
+
+    // Verify the expiration action is set to custom
+    expect($approval->fresh()->expiration_action)->toBe(expected: 'custom');
+});
+
+test(description: 'can process expired approvals', closure: function () {
+    // Create and set up approvals with different actions
+    FakeModel::create(['name' => 'Model 1', 'meta' => 'red']);
+    $rejectionApproval = Approval::first();
+    $rejectionApproval->expiresIn(datetime: now()->subHour())->thenReject();
+
+    FakeModel::create(['name' => 'Model 2', 'meta' => 'blue']);
+    $postponeApproval = Approval::orderByDesc(column: 'id')->first();
+    $postponeApproval->expiresIn(datetime: now()->subHour())->thenPostpone();
+
+    // Create a non-expired approval
+    FakeModel::create(['name' => 'Model 3', 'meta' => 'green']);
+    $futureApproval = Approval::orderByDesc(column: 'id')->first();
+    $futureApproval->expiresIn(datetime: now()->addHour())->thenReject();
+
+    // Fake the events to check they're dispatched
+    Event::fake([
+        ApprovalExpired::class,
+        ModelRejected::class,
+        ModelSetPending::class,
+    ]);
+
+    // Process expired approvals
+    Approval::processExpired();
+
+    // Verify rejections were processed
+    expect($rejectionApproval->fresh()->state->value)
+        ->toBe(expected: 'rejected')
+        ->and($rejectionApproval->fresh()->actioned_at)
+        ->not->toBeNull();
+
+    // Verify postponements were processed
+    expect($postponeApproval->fresh()->state->value)
+        ->toBe(expected: 'pending')
+        ->and($postponeApproval->fresh()->actioned_at)
+        ->not->toBeNull();
+
+    // Verify future approvals were not touched
+    expect($futureApproval->fresh()->actioned_at)->toBeNull();
+
+    // Verify events were dispatched
+    Event::assertDispatched(event: ApprovalExpired::class, callback: 2); // For both expired approvals
+    Event::assertDispatched(event: ModelRejected::class, callback: 1);
+    Event::assertDispatched(event: ModelSetPending::class, callback: 1);
 });

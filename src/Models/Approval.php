@@ -3,6 +3,7 @@
 namespace Cjmellor\Approval\Models;
 
 use Cjmellor\Approval\Enums\ApprovalStatus;
+use Cjmellor\Approval\Events\ApprovalExpired;
 use Cjmellor\Approval\Events\ModelRolledBackEvent;
 use Cjmellor\Approval\Scopes\ApprovalStateScope;
 use Closure;
@@ -161,5 +162,90 @@ class Approval extends Model
         }
 
         return $this->expires_at->isPast();
+    }
+
+    /**
+     * Set the approval to be automatically rejected when it expires.
+     */
+    public function thenReject(): self
+    {
+        $this->expiration_action = 'reject';
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Set the approval to be automatically postponed when it expires.
+     */
+    public function thenPostpone(): self
+    {
+        $this->expiration_action = 'postpone';
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Set a custom action to be executed when the approval expires.
+     *
+     * Note: Since we can't store callbacks in the database, this will set the action
+     * to 'custom' and applications should listen for the ApprovalExpired event to
+     * handle custom actions.
+     */
+    public function thenDo(callable $callback): self
+    {
+        $this->expiration_action = 'custom';
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Process all expired approvals.
+     */
+    public static function processExpired(): int
+    {
+        $processed = 0;
+
+        // Find expired approvals that haven't been actioned yet
+        $expiredApprovals = static::query()
+            ->whereNotNull(columns: 'expires_at')
+            ->whereNull(columns: 'actioned_at')
+            ->where(column: 'expires_at', operator: '<', value: now())
+            ->get();
+
+        foreach ($expiredApprovals as $approval) {
+            // Mark as actioned
+            $approval->actioned_at = now();
+            $approval->save();
+
+            // Fire the expired event
+            Event::dispatch(new ApprovalExpired($approval, auth()->user()));
+
+            // Process based on expiration action
+            switch ($approval->expiration_action) {
+                case 'reject':
+                    $approval->reject();
+                    break;
+
+                case 'postpone':
+                    $approval->postpone();
+                    break;
+
+                case 'custom':
+                    // For custom actions, we just rely on event listeners
+                    $approval->save(); // Save the actioned_at timestamp
+                    break;
+
+                default:
+                    // No action specified, just mark as actioned
+                    $approval->save();
+            }
+
+            $processed++;
+        }
+
+        return $processed;
     }
 }
