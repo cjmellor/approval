@@ -8,5 +8,12 @@ return [
          * Default: 'approvalable'
          */
         'approval_pivot' => 'approvalable',
+
+        /**
+         * The users table name
+         *
+         * Default: 'users'
+         */
+        'users_table' => 'users',
     ],
 ];
