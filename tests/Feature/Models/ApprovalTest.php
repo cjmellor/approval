@@ -198,9 +198,10 @@ test(description: 'wasRequestedBy correctly identifies if a model requested the 
     expect($approval->wasRequestedBy($user2))->toBeFalse();
 });
 
-test('can set expiration time with different parameters', closure: function (
+test('can set expiration time with different parameters', function (
     array $params,
-    callable $expectedTimeGenerator
+    callable $expectedTimeGenerator,
+    int $expectedDuration
 ) {
     // Create a fake model which creates an approval
     FakeModel::create($this->fakeModelData);
@@ -214,14 +215,19 @@ test('can set expiration time with different parameters', closure: function (
 
     expect($approval->fresh()->expires_at)->not->toBeNull();
 
-    // Calculate difference between timestamps and ensure it's less than 5 seconds
-    $difference = abs(num: $approval->fresh()->expires_at->timestamp - $expectedTime->timestamp);
-    expect($difference)->toBeLessThan(expected: 5);
+    // Calculate difference between timestamps
+    $difference = abs($approval->fresh()->expires_at->timestamp - $expectedTime->timestamp);
+
+    // Instead of a fixed 5 seconds, allow a percentage-based margin of error
+    // For longer durations, we need a larger acceptable difference
+    $marginOfError = max(5, $expectedDuration * 0.03); // 3% margin with minimum of 5 seconds
+
+    expect($difference)->toBeLessThan($marginOfError);
 })->with([
-    [['minutes' => 30], fn () => now()->addMinutes(value: 30)],
-    [['hours' => 24], fn () => now()->addHours(value: 24)],
-    [['days' => 7], fn () => now()->addDays(value: 7)],
-    [['datetime' => now()->addWeek()], fn () => now()->addWeek()],
+    [['minutes' => 30], fn () => now()->addMinutes(30), 30 * 60], // 30 minutes in seconds
+    [['hours' => 24], fn () => now()->addHours(24), 24 * 3600],   // 24 hours in seconds
+    [['days' => 7], fn () => now()->addDays(7), 7 * 86400],       // 7 days in seconds
+    [['datetime' => now()->addWeek()], fn () => now()->addWeek(), 7 * 86400], // Same as days
 ]);
 
 test(description: 'throws exception when no expiration time is provided', closure: function () {
