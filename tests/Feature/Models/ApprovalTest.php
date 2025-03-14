@@ -37,7 +37,8 @@ test(description: 'an Approved Model can be rolled back and doesn\'t bypass', cl
         ->rolled_back_at->not->toBeNull();
 
     // Assert the Events were fired
-    Event::assertDispatched(fn (ModelRolledBackEvent $event): bool => $event->approval->is($fakeModel->fresh()->approvals()->first())
+    Event::assertDispatched(fn (ModelRolledBackEvent $event
+    ): bool => $event->approval->is($fakeModel->fresh()->approvals()->first())
         && $event->user === null);
 });
 
@@ -98,36 +99,36 @@ test(description: 'a rolled back Approval can be conditionally set', closure: fu
 test(description: 'requestor method returns a morphTo relationship', closure: function () {
     // Create a user
     $user = FakeUser::create($this->fakeUserData);
-    
+
     // Set the user as authenticated
     $this->be($user);
-    
+
     // Create model with approval
     $fakeModel = new FakeModel();
     $fakeModel->name = 'Test Model';
     $fakeModel->save();
-    
+
     // Get the approval directly from the database
     $approval = Approval::first();
-    
+
     expect($approval->requestor())->toBeInstanceOf(\Illuminate\Database\Eloquent\Relations\MorphTo::class);
 });
 
 test(description: 'getRequestorAttribute returns the user that requested approval', closure: function () {
     // Create a user
     $user = FakeUser::create($this->fakeUserData);
-    
+
     // Set the user as authenticated
     $this->be($user);
-    
+
     // Create model with approval
     $fakeModel = new FakeModel();
     $fakeModel->name = 'Test Model';
     $fakeModel->save();
-    
+
     // Get the approval directly from the database
     $approval = Approval::first();
-    
+
     expect($approval->requestor)
         ->toBeInstanceOf(FakeUser::class)
         ->id->toBe($user->id)
@@ -139,30 +140,30 @@ test(description: 'scopeRequestedBy correctly filters approvals by requestor', c
     $user1 = FakeUser::create([
         'name' => 'User One',
         'email' => 'user1@example.com',
-        'password' => 'password'
+        'password' => 'password',
     ]);
-    
+
     $user2 = FakeUser::create([
         'name' => 'User Two',
         'email' => 'user2@example.com',
-        'password' => 'password'
+        'password' => 'password',
     ]);
-    
+
     // Create approvals as user1
     $this->be($user1);
     $model1 = new FakeModel();
     $model1->name = 'Model by User 1';
     $model1->save();
-    
+
     // Create approvals as user2
     $this->be($user2);
     $model2 = new FakeModel();
     $model2->name = 'Model by User 2';
     $model2->save();
-    
+
     // Query approvals by user1
     $user1Approvals = Approval::requestedBy($user1)->get();
-    
+
     // Assert that only approvals by user1 are returned
     expect($user1Approvals)->toHaveCount(1);
     expect($user1Approvals->first()->creator_id)->toBe($user1->id);
@@ -173,23 +174,71 @@ test(description: 'wasRequestedBy correctly identifies if a model requested the 
     $user1 = FakeUser::create([
         'name' => 'User One',
         'email' => 'user1@example.com',
-        'password' => 'password'
+        'password' => 'password',
     ]);
-    
+
     $user2 = FakeUser::create([
         'name' => 'User Two',
         'email' => 'user2@example.com',
-        'password' => 'password'
+        'password' => 'password',
     ]);
-    
+
     // Create approval as user1
     $this->be($user1);
     $model = new FakeModel();
     $model->name = 'Test Model';
     $model->save();
-    
+
     $approval = Approval::first();
-    
+
     expect($approval->wasRequestedBy($user1))->toBeTrue();
     expect($approval->wasRequestedBy($user2))->toBeFalse();
+});
+
+test('can set expiration time with different parameters', closure: function (
+    array $params,
+    callable $expectedTimeGenerator
+) {
+    // Create a fake model which creates an approval
+    FakeModel::create($this->fakeModelData);
+
+    // Get the approval and set expiration time using the provided parameters
+    $approval = Approval::first();
+    $approval->expiresIn(...$params);
+
+    // Get the expected time using the provided generator function
+    $expectedTime = $expectedTimeGenerator();
+
+    expect($approval->fresh()->expires_at)->not->toBeNull();
+
+    // Calculate difference between timestamps and ensure it's less than 5 seconds
+    $difference = abs(num: $approval->fresh()->expires_at->timestamp - $expectedTime->timestamp);
+    expect($difference)->toBeLessThan(expected: 5);
+})->with([
+    [['minutes' => 30], fn () => now()->addMinutes(value: 30)],
+    [['hours' => 24], fn () => now()->addHours(value: 24)],
+    [['days' => 7], fn () => now()->addDays(value: 7)],
+    [['datetime' => now()->addWeek()], fn () => now()->addWeek()],
+]);
+
+test(description: 'throws exception when no expiration time is provided', closure: function () {
+    FakeModel::create($this->fakeModelData);
+
+    $approval = Approval::first();
+
+    expect(fn () => $approval->expiresIn())->toThrow(exception: \InvalidArgumentException::class);
+});
+
+test(description: 'can check if an approval is expired', closure: function () {
+    FakeModel::create($this->fakeModelData);
+
+    $approval = Approval::first();
+
+    // Set expiration to a past time
+    $approval->expiresIn(datetime: now()->subHour());
+    expect($approval->isExpired())->toBeTrue();
+
+    // Set expiration to a future time
+    $approval->expiresIn(datetime: now()->addHour());
+    expect($approval->isExpired())->toBeFalse();
 });
