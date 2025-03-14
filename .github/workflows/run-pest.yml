@@ -5,22 +5,13 @@ on: pull_request
 jobs:
   tests:
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
-        php: [ 8.3, 8.4 ]
-        stability: [ prefer-stable ]
-        experimental: [false]
-        include:
-          - php: 8.3
-            stability: prefer-lowest
-            experimental: true
-          - php: 8.4
-            stability: prefer-lowest
-            experimental: true
+        php: [ 8.2, 8.3, 8.4 ]
+        stability: [ prefer-lowest, prefer-stable ]
 
-    name: "PHP: v${{ matrix.php }} [${{ matrix.stability }}]${{ matrix.experimental && ' (experimental)' || '' }}"
+    name: "PHP: v${{ matrix.php }} [${{ matrix.stability }}]"
 
     steps:
       - name: Checkout
