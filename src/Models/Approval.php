@@ -3,14 +3,17 @@
 namespace Cjmellor\Approval\Models;
 
 use Cjmellor\Approval\Enums\ApprovalStatus;
+use Cjmellor\Approval\Events\ApprovalExpired;
 use Cjmellor\Approval\Events\ModelRolledBackEvent;
 use Cjmellor\Approval\Scopes\ApprovalStateScope;
 use Closure;
+use DateTimeInterface;
 use Exception;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Facades\Event;
+use InvalidArgumentException;
 
 class Approval extends Model
 {
@@ -21,11 +24,13 @@ class Approval extends Model
         'original_data' => AsArrayObject::class,
         'state' => ApprovalStatus::class,
         'rolled_back_at' => 'datetime',
+        'expires_at' => 'datetime',
+        'actioned_at' => 'datetime',
     ];
 
     public static function booted(): void
     {
-        static::addGlobalScope(new ApprovalStateScope());
+        static::addGlobalScope(scope: new ApprovalStateScope());
     }
 
     public function approvalable(): MorphTo
@@ -51,7 +56,7 @@ class Approval extends Model
     public function scopeRequestedBy($query, $requestor)
     {
         return $query->where('creator_type', get_class($requestor))
-                     ->where('creator_id', $requestor->getKey());
+            ->where('creator_id', $requestor->getKey());
     }
 
     public function wasRequestedBy($requestor): bool
@@ -123,5 +128,124 @@ class Approval extends Model
         ]);
 
         Event::dispatch(new ModelRolledBackEvent(approval: $this, user: auth()->user()));
+    }
+
+    /**
+     * Set the expiration time for this approval.
+     */
+    public function expiresIn(
+        ?int $minutes = null,
+        ?int $hours = null,
+        ?int $days = null,
+        ?DateTimeInterface $datetime = null
+    ): self {
+        $this->expires_at = match (true) {
+            $datetime !== null => $datetime,
+            $days !== null => now()->addDays($days),
+            $hours !== null => now()->addHours($hours),
+            $minutes !== null => now()->addMinutes($minutes),
+            default => throw new InvalidArgumentException(message: 'You must specify an expiration time')
+        };
+
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Check if the approval has expired.
+     */
+    public function isExpired(): bool
+    {
+        if ($this->expires_at === null) {
+            return false;
+        }
+
+        return $this->expires_at->isPast();
+    }
+
+    /**
+     * Set the approval to be automatically rejected when it expires.
+     */
+    public function thenReject(): self
+    {
+        $this->expiration_action = 'reject';
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Set the approval to be automatically postponed when it expires.
+     */
+    public function thenPostpone(): self
+    {
+        $this->expiration_action = 'postpone';
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Set a custom action to be executed when the approval expires.
+     *
+     * Note: Since we can't store callbacks in the database, this will set the action
+     * to 'custom' and applications should listen for the ApprovalExpired event to
+     * handle custom actions.
+     */
+    public function thenDo(callable $callback): self
+    {
+        $this->expiration_action = 'custom';
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Process all expired approvals.
+     */
+    public static function processExpired(): int
+    {
+        $processed = 0;
+
+        // Find expired approvals that haven't been actioned yet
+        $expiredApprovals = static::query()
+            ->whereNotNull(columns: 'expires_at')
+            ->whereNull(columns: 'actioned_at')
+            ->where(column: 'expires_at', operator: '<', value: now())
+            ->get();
+
+        foreach ($expiredApprovals as $approval) {
+            // Mark as actioned
+            $approval->actioned_at = now();
+            $approval->save();
+
+            // Fire the expired event
+            Event::dispatch(new ApprovalExpired($approval, auth()->user()));
+
+            // Process based on expiration action
+            switch ($approval->expiration_action) {
+                case 'reject':
+                    $approval->reject();
+                    break;
+
+                case 'postpone':
+                    $approval->postpone();
+                    break;
+
+                case 'custom':
+                    // For custom actions, we just rely on event listeners
+                    $approval->save(); // Save the actioned_at timestamp
+                    break;
+
+                default:
+                    // No action specified, just mark as actioned
+                    $approval->save();
+            }
+
+            $processed++;
+        }
+
+        return $processed;
     }
 }
