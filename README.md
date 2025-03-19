@@ -23,6 +23,10 @@ php artisan vendor:publish --tag="approval-migrations"
 php artisan migrate
 ```
 
+## Upgrading from v1
+
+If you're upgrading from v1.x to v2.x, please follow the [detailed upgrade guide](UPGRADE.md) to ensure a smooth transition. Version 2 introduces database schema changes that require running specific commands in the correct order.
+
 You can publish the config file with:
 
 ```bash

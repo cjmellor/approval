@@ -4,33 +4,41 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// Helper functions for test setup
-function createV1Schema(): void
-{
-    Schema::create('approvals', function (Blueprint $table) {
+// Setup our v1 environment for all tests in this file
+beforeEach(function (): void {
+    // Drop approvals table if it exists
+    Schema::dropIfExists(table: 'approvals');
+
+    // Create v1 schema
+    Schema::create(table: 'approvals', callback: function (Blueprint $table): void {
         $table->id();
-        $table->nullableMorphs('approvalable');
-        $table->enum('state', ['pending', 'approved', 'rejected'])->default('pending');
-        $table->json('new_data')->nullable();
-        $table->json('original_data')->nullable();
-        $table->timestamp('rolled_back_at')->nullable();
-        $table->foreignId('audited_by')->nullable()->constrained('users');
-        $table->unsignedBigInteger('foreign_key')->nullable();
-        $table->nullableMorphs('creator');
-        $table->timestamp('expires_at')->nullable();
-        $table->string('expiration_action')->nullable();
-        $table->timestamp('actioned_at')->nullable();
-        $table->foreignId('actioned_by')->nullable()->constrained('users');
+        $table->nullableMorphs(name: 'approvalable');
+        $table->enum(column: 'state', allowed: ['pending', 'approved', 'rejected'])->default(value: 'pending');
+        $table->json(column: 'new_data')->nullable();
+        $table->json(column: 'original_data')->nullable();
+        $table->timestamp(column: 'rolled_back_at')->nullable();
+        $table->foreignId(column: 'audited_by')->nullable()->constrained(table: 'users');
+        $table->unsignedBigInteger(column: 'foreign_key')->nullable();
+        $table->nullableMorphs(name: 'creator');
+        $table->timestamp(column: 'expires_at')->nullable();
+        $table->string(column: 'expiration_action')->nullable();
+        $table->timestamp(column: 'actioned_at')->nullable();
+        $table->foreignId(column: 'actioned_by')->nullable()->constrained(table: 'users');
         $table->timestamps();
     });
-}
 
-function seedV1ApprovalData(): int
+    // Seed with test data
+    seedTestApprovals();
+
+    // Store count for verification
+    $this->approvalCount = DB::table(table: 'approvals')->count();
+});
+
+// Helper method to seed test data
+function seedTestApprovals(): void
 {
-    // Use individual inserts instead of bulk insert to handle different column sets
-
     // Pending approval
-    DB::table('approvals')->insert([
+    DB::table(table: 'approvals')->insert([
         'approvalable_type' => 'App\\Models\\Test',
         'approvalable_id' => 1,
         'state' => 'pending',
@@ -41,7 +49,7 @@ function seedV1ApprovalData(): int
     ]);
 
     // Approved approval
-    DB::table('approvals')->insert([
+    DB::table(table: 'approvals')->insert([
         'approvalable_type' => 'App\\Models\\Test',
         'approvalable_id' => 2,
         'state' => 'approved',
@@ -52,7 +60,7 @@ function seedV1ApprovalData(): int
     ]);
 
     // Rejected approval
-    DB::table('approvals')->insert([
+    DB::table(table: 'approvals')->insert([
         'approvalable_type' => 'App\\Models\\Test',
         'approvalable_id' => 3,
         'state' => 'rejected',
@@ -63,7 +71,7 @@ function seedV1ApprovalData(): int
     ]);
 
     // Approval with expiration setting
-    DB::table('approvals')->insert([
+    DB::table(table: 'approvals')->insert([
         'approvalable_type' => 'App\\Models\\Test',
         'approvalable_id' => 4,
         'state' => 'pending',
@@ -76,7 +84,7 @@ function seedV1ApprovalData(): int
     ]);
 
     // Approval with UTF-8 multibyte characters
-    DB::table('approvals')->insert([
+    DB::table(table: 'approvals')->insert([
         'approvalable_type' => 'App\\Models\\Test',
         'approvalable_id' => 5,
         'state' => 'pending',
@@ -87,106 +95,101 @@ function seedV1ApprovalData(): int
     ]);
 
     // Approval with large dataset
-    DB::table('approvals')->insert([
+    DB::table(table: 'approvals')->insert(values: [
         'approvalable_type' => 'App\\Models\\Test',
         'approvalable_id' => 6,
         'state' => 'pending',
-        'new_data' => json_encode(array_fill(0, 100, 'Data entry for testing large datasets')),
+        'new_data' => json_encode(value: array_fill(
+            start_index: 0,
+            count: 100,
+            value: 'Data entry for testing large datasets')
+        ),
         'original_data' => json_encode([]),
         'created_at' => now(),
         'updated_at' => now(),
     ]);
-
-    // Return count for verification
-    return DB::table('approvals')->count();
 }
 
-function setupV1Environment(): int
-{
-    // Drop approvals table if it exists
-    Schema::dropIfExists('approvals');
-
-    // Create v1 schema
-    createV1Schema();
-
-    // Seed with test data and return the count
-    return seedV1ApprovalData();
-}
-
-// Setup our v1 environment for all tests in this file
-beforeEach(function () {
-    $this->approvalCount = setupV1Environment();
-});
-
-test('upgrade successfully migrates schema with confirmation', function () {
+test(description: 'upgrade successfully migrates schema with confirmation', closure: function (): void {
     // Verify we're starting with v1 schema
-    expect(Schema::hasColumn('approvals', 'custom_state'))->toBeFalse('Test should start with v1 schema');
+    expect(Schema::hasColumn(table: 'approvals', column: 'custom_state'))
+        ->toBeFalse(message: 'Test should start with v1 schema');
 
     // Mock console confirmation to return true
-    $this->artisan('approval:upgrade-to-v2')
-        ->expectsConfirmation('Have you backed up your database? This operation modifies schema.', 'yes')
-        ->expectsOutput('✅ Database schema successfully upgraded to v2')
-        ->assertExitCode(0);
+    $this->artisan(command: 'approval:upgrade-to-v2')
+        ->expectsConfirmation(
+            question: 'Have you backed up your database? This operation modifies schema.',
+            answer: 'yes'
+        )
+        ->expectsOutput(output: '✅ Database schema successfully upgraded to v2')
+        ->assertExitCode(exitCode: 0);
 
-    // Verify schema was upgraded
-    expect(Schema::hasColumn('approvals', 'custom_state'))->toBeTrue('Column custom_state should exist after upgrade');
+    // Verify schema was upgraded and data integrity maintained
+    expect(Schema::hasColumn(table: 'approvals', column: 'custom_state'))
+        ->toBeTrue(message: 'Column custom_state should exist after upgrade')
+        ->and(DB::table(table: 'approvals')->count())
+        ->toBe(expected: $this->approvalCount, message: 'All records should be preserved');
 
-    // Verify all data is intact
-    expect(DB::table('approvals')->count())->toBe($this->approvalCount, 'All records should be preserved');
-
-    // Verify data integrity for a specific record
-    $record = DB::table('approvals')->where('approvalable_id', 5)->first();
-    expect($record)->not->toBeNull();
-
-    $data = json_decode($record->new_data, true);
-    expect($data['name'])->toBe('Test with UTF-8: 你好, こんにちは, 안녕하세요', 'Multibyte data should be preserved');
+    // Verify data integrity for a specific record with multibyte characters
+    $record = DB::table(table: 'approvals')->where('approvalable_id', 5)->first();
+    expect($record)->not->toBeNull()
+        ->and(json_decode($record->new_data))
+        ->toBeObject()
+        ->name->toBe(expected: 'Test with UTF-8: 你好, こんにちは, 안녕하세요');
 });
 
-test('upgrade detects already upgraded schema', function () {
+test(description: 'upgrade detects already upgraded schema', closure: function (): void {
     // First run the upgrade
-    $this->artisan('approval:upgrade-to-v2')
-        ->expectsConfirmation('Have you backed up your database? This operation modifies schema.', 'yes');
+    $this->artisan(command: 'approval:upgrade-to-v2')
+        ->expectsConfirmation(
+            question: 'Have you backed up your database? This operation modifies schema.',
+            answer: 'yes'
+        );
 
     // Run again to test detection
-    $this->artisan('approval:upgrade-to-v2')
-        ->expectsOutput('✅ Your database is already using the v2 schema.')
-        ->assertExitCode(0);
+    $this->artisan(command: 'approval:upgrade-to-v2')
+        ->expectsOutput(output: '✅ Your database is already using the v2 schema.')
+        ->assertExitCode(exitCode: 0);
 });
 
-test('upgrade aborts without confirmation', function () {
-    // Reset to v1 schema
-    Schema::dropIfExists('approvals');
-    createV1Schema();
-    seedV1ApprovalData();
-
+test(description: 'upgrade aborts without confirmation', closure: function (): void {
     // Run upgrade but answer "no" to backup confirmation
-    $this->artisan('approval:upgrade-to-v2')
-        ->expectsConfirmation('Have you backed up your database? This operation modifies schema.', 'no')
-        ->expectsOutput('Please backup your database before proceeding.')
-        ->assertExitCode(1);
+    $this->artisan(command: 'approval:upgrade-to-v2')
+        ->expectsConfirmation(
+            question: 'Have you backed up your database? This operation modifies schema.',
+            answer: 'no' // default
+        )
+        ->expectsOutput(output: 'Please backup your database before proceeding.')
+        ->assertExitCode(exitCode: 1);
 
     // Verify schema was not changed
-    expect(Schema::hasColumn('approvals',
-        'custom_state'))->toBeFalse('Schema should not be modified without confirmation');
+    expect(Schema::hasColumn(table: 'approvals', column: 'custom_state'))
+        ->toBeFalse(message: 'Schema should not be modified without confirmation');
 });
 
-test('upgrade preserves all approval states', function () {
-    // Get counts by state before upgrade
-    $pendingCount = DB::table('approvals')->where('state', 'pending')->count();
-    $approvedCount = DB::table('approvals')->where('state', 'approved')->count();
-    $rejectedCount = DB::table('approvals')->where('state', 'rejected')->count();
+test(description: 'upgrade preserves approval state counts', closure: function (string $state): void {
+    // Get initial count for this state
+    $initialCount = DB::table(table: 'approvals')
+        ->where('state', $state)
+        ->count();
+
+    // Verify there's at least one record with this state
+    expect($initialCount)->toBeGreaterThan(expected: 0);
 
     // Run upgrade
-    $this->artisan('approval:upgrade-to-v2')
-        ->expectsConfirmation('Have you backed up your database? This operation modifies schema.', 'yes');
+    $this->artisan(command: 'approval:upgrade-to-v2')
+        ->expectsConfirmation(
+            question: 'Have you backed up your database? This operation modifies schema.',
+            answer: 'yes'
+        );
 
-    // Verify counts remain the same after upgrade
-    expect(DB::table('approvals')->where('state', 'pending')->count())
-        ->toBe($pendingCount, 'Pending approvals count should be preserved');
-
-    expect(DB::table('approvals')->where('state', 'approved')->count())
-        ->toBe($approvedCount, 'Approved approvals count should be preserved');
-
-    expect(DB::table('approvals')->where('state', 'rejected')->count())
-        ->toBe($rejectedCount, 'Rejected approvals count should be preserved');
-});
+    // Verify count remains the same after upgrade
+    expect(DB::table(table: 'approvals'))
+        ->whereState($state)
+        ->count()
+        ->toBe(expected: $initialCount, message: "$state approvals count should be preserved");
+})->with([
+    'pending',
+    'approved',
+    'rejected',
+]);
