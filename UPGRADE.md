@@ -1,5 +1,39 @@
 # Upgrade Guide
 
+## v1.x to v2.x
+
+### Automated Upgrade
+
+This package comes with an automatic upgrade command to help you migrate from v1 to v2:
+
+```bash
+# First, backup your database!
+php artisan approval:upgrade-to-v2
+```
+
+This command will:
+- Check if your schema needs to be upgraded
+- Add the necessary columns for v2 features
+- Verify data integrity after the upgrade
+
+### Manual Upgrade
+
+If you prefer to upgrade manually:
+
+1. Make sure you have a database backup
+2. Run migrations: `php artisan migrate`
+3. (Optional) Publish config: `php artisan vendor:publish --tag="approval-config"`
+
+### Using New Features
+
+After upgrading, you can:
+
+1. Define custom approval states in `config/approval.php`
+2. Use the new `setState()` and `getState()` methods
+3. Query custom states with `whereState()`
+
+All existing v1 functionality continues to work without changes.
+
 ## v1.4.3 -> v1.5.0
 
 > [!IMPORTANT]
