@@ -21,6 +21,7 @@ class ApprovalServiceProvider extends PackageServiceProvider
                 '2024_03_16_173148_add_foreign_id_column_to_approvals_table',
                 '2025_03_04_000001_add_creator_to_approvals_table',
                 '2025_03_14_062513_add_expiration_columns_to_approvals_table',
+                '2025_03_15_123355_add_custom_state_to_approvals_table',
             ]);
     }
 }
