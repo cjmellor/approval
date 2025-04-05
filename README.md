@@ -2,7 +2,7 @@
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/cjmellor/approval/run-pest.yml?branch=main&label=tests&style=for-the-badge&color=rgb%28134%20239%20128%29)](https://github.com/cjmellor/approval/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/cjmellor/approval.svg?color=rgb%28249%20115%2022%29&style=for-the-badge)](https://packagist.org/packages/cjmellor/approval)
 ![Packagist PHP Version](https://img.shields.io/packagist/dependency-v/cjmellor/approval/php?color=rgb%28165%20180%20252%29&logo=php&logoColor=rgb%28165%20180%20252%29&style=for-the-badge)
-![Laravel Version](<https://img.shields.io/badge/laravel-^10-rgb(235%2068%2050)?style=for-the-badge&logo=laravel>)
+![Laravel Version](<https://img.shields.io/badge/laravel-^11-rgb(235%2068%2050)?style=for-the-badge&logo=laravel>)
 
 Approval is a Laravel package that provides a simple way to approve new Model data before it is persisted.
 
@@ -22,6 +22,10 @@ You can publish and run the migrations with:
 php artisan vendor:publish --tag="approval-migrations"
 php artisan migrate
 ```
+
+## Upgrading from v1
+
+If you're upgrading from v1.x to v2.x, please follow the [detailed upgrade guide](UPGRADE.md) to ensure a smooth transition. Version 2 introduces database schema changes that require running specific commands in the correct order.
 
 You can publish the config file with:
 
@@ -49,9 +53,7 @@ The config allows you to change the polymorphic pivot name. It should end with `
 ## Usage
 
 > [!NOTE]
-> The package utilises Enums, so both PHP >= 8.1 and Laravel 10 must be used.
->
-> **Note** This package does not approve/deny the data for you, it just stores the new/amended data into the database. It is up to you to decide how you implement a function to approve or deny the Model.
+> This package does not approve/deny the data for you, it just stores the new/amended data into the database. It is up to you to decide how you implement a function to approve or deny the Model.
 
 Add the `MustBeApproved` trait to your Model and now the data will be stored in an `approvals` table, ready for you to approve or deny.
 
@@ -212,6 +214,61 @@ Once a Model's state has been changed, an event will be fired.
 - ModelRejected::class
 - ApprovalCreated::class
 ```
+
+### Configurable Approval States
+
+The package allows you to define custom approval states beyond the default set (`Pending`, `Approved`, `Rejected`).
+
+#### Configuring Custom States
+
+Define your custom states in the `config/approval.php` file:
+
+```php
+'states' => [
+    'pending' => [
+        'name' => 'Pending',
+        'default' => true,
+    ],
+    'approved' => [
+        'name' => 'Approved',
+    ],
+    'rejected' => [
+        'name' => 'Rejected',
+    ],
+    'in_review' => [
+        'name' => 'In Review',
+    ],
+    'needs_info' => [
+        'name' => 'Needs Clarification',
+    ],
+],
+```
+
+#### Using Custom States
+
+You can set any configured state on an approval:
+
+```php
+// Set a custom state
+$approval->setState('in_review');
+
+// Check the current state
+$currentState = $approval->getState();
+```
+
+#### Querying by State
+
+The package provides a flexible way to query approvals by any state:
+
+```php
+// Query approvals with a specific state
+$inReviewApprovals = Approval::whereState('in_review')->get();
+
+// The standard scopes still work for the default states
+$pendingApprovals = Approval::pending()->get();
+```
+
+Standard states (`pending`, `approved`, `rejected`) continue to work with all existing methods, ensuring backward compatibility.
 
 ## Rollbacks
 
