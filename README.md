@@ -23,6 +23,10 @@ php artisan vendor:publish --tag="approval-migrations"
 php artisan migrate
 ```
 
+## Upgrading from v1
+
+If you're upgrading from v1.x to v2.x, please follow the [detailed upgrade guide](UPGRADE.md) to ensure a smooth transition. Version 2 introduces database schema changes that require running specific commands in the correct order.
+
 You can publish the config file with:
 
 ```bash
@@ -210,6 +214,61 @@ Once a Model's state has been changed, an event will be fired.
 - ModelRejected::class
 - ApprovalCreated::class
 ```
+
+### Configurable Approval States
+
+The package allows you to define custom approval states beyond the default set (`Pending`, `Approved`, `Rejected`).
+
+#### Configuring Custom States
+
+Define your custom states in the `config/approval.php` file:
+
+```php
+'states' => [
+    'pending' => [
+        'name' => 'Pending',
+        'default' => true,
+    ],
+    'approved' => [
+        'name' => 'Approved',
+    ],
+    'rejected' => [
+        'name' => 'Rejected',
+    ],
+    'in_review' => [
+        'name' => 'In Review',
+    ],
+    'needs_info' => [
+        'name' => 'Needs Clarification',
+    ],
+],
+```
+
+#### Using Custom States
+
+You can set any configured state on an approval:
+
+```php
+// Set a custom state
+$approval->setState('in_review');
+
+// Check the current state
+$currentState = $approval->getState();
+```
+
+#### Querying by State
+
+The package provides a flexible way to query approvals by any state:
+
+```php
+// Query approvals with a specific state
+$inReviewApprovals = Approval::whereState('in_review')->get();
+
+// The standard scopes still work for the default states
+$pendingApprovals = Approval::pending()->get();
+```
+
+Standard states (`pending`, `approved`, `rejected`) continue to work with all existing methods, ensuring backward compatibility.
 
 ## Rollbacks
 

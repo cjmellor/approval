@@ -33,6 +33,8 @@ class ApprovalStateScope implements Scope
         'Expired',
         'NotExpired',
         'HasExpiration',
+        // Dynamic state scope
+        'WhereState',
     ];
 
     /**
@@ -211,5 +213,26 @@ class ApprovalStateScope implements Scope
                 ->withAnyState()
                 ->whereNotNull('expires_at')
         );
+    }
+
+    /**
+     * Query approvals by any state (standard or custom).
+     */
+    protected function addWhereState(Builder $builder): void
+    {
+        $builder->macro('whereState', function (Builder $builder, string $state): Builder {
+            // For standard states, query the enum column
+            if (in_array($state, ['pending', 'approved', 'rejected'])) {
+                return $builder
+                    ->withAnyState()
+                    ->where('state', ApprovalStatus::from($state))
+                    ->whereNull('custom_state');
+            }
+
+            // For custom states, query the custom_state column
+            return $builder
+                ->withAnyState()
+                ->where('custom_state', $state);
+        });
     }
 }

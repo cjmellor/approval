@@ -12,6 +12,7 @@ use Exception;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Event;
 use InvalidArgumentException;
 
@@ -247,5 +248,45 @@ class Approval extends Model
         }
 
         return $processed;
+    }
+
+    /**
+     * Set the state of the approval.
+     */
+    public function setState(string $state): self
+    {
+        // Get states from config
+        $states = config('approval.states');
+
+        if (! $states || ! array_key_exists($state, $states)) {
+            throw new \InvalidArgumentException("State '{$state}' is not defined in the approval configuration.");
+        }
+
+        // For standard states, use the enum
+        if (in_array($state, ['pending', 'approved', 'rejected'])) {
+            $this->state = ApprovalStatus::from($state);
+            $this->attributes['custom_state'] = null; // Clear any custom state
+        } else {
+            // For custom states, set a valid base state and the custom state
+            $this->state = ApprovalStatus::Pending; // Default enum value
+            $this->attributes['custom_state'] = $state;
+        }
+
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Get the current state of the approval.
+     */
+    public function getState(): string
+    {
+        if (Arr::exists(array: $this->attributes, key: 'custom_state')) {
+            return $this->attributes['custom_state'];
+        }
+
+        // Otherwise, return the standard state
+        return $this->state->value;
     }
 }
