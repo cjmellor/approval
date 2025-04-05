@@ -36,6 +36,11 @@ class ApprovalServiceProvider extends ServiceProvider
                 UpgradeToV2Command::class,
             ]);
         }
+        
+        // Skip schema check during console commands
+        if (! $this->app->runningInConsole() && class_exists('\\Cjmellor\\Approval\\Models\\Approval')) {
+            $this->checkSchemaCompatibility();
+        }
     }
 
     /**
@@ -48,16 +53,6 @@ class ApprovalServiceProvider extends ServiceProvider
             path: __DIR__.'/../config/approval.php',
             key: 'approval'
         );
-    }
-
-    public function boot(): void
-    {
-        parent::boot();
-
-        // Skip schema check during console commands
-        if (! $this->app->runningInConsole() && class_exists('\\Cjmellor\\Approval\\Models\\Approval')) {
-            $this->checkSchemaCompatibility();
-        }
     }
 
     protected function checkSchemaCompatibility(): void
