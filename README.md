@@ -2,7 +2,7 @@
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/cjmellor/approval/run-pest.yml?branch=main&label=tests&style=for-the-badge&color=rgb%28134%20239%20128%29)](https://github.com/cjmellor/approval/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/cjmellor/approval.svg?color=rgb%28249%20115%2022%29&style=for-the-badge)](https://packagist.org/packages/cjmellor/approval)
 ![Packagist PHP Version](https://img.shields.io/packagist/dependency-v/cjmellor/approval/php?color=rgb%28165%20180%20252%29&logo=php&logoColor=rgb%28165%20180%20252%29&style=for-the-badge)
-![Laravel Version](<https://img.shields.io/badge/laravel-^10-rgb(235%2068%2050)?style=for-the-badge&logo=laravel>)
+![Laravel Version](<https://img.shields.io/badge/laravel-^11-rgb(235%2068%2050)?style=for-the-badge&logo=laravel>)
 
 Approval is a Laravel package that provides a simple way to approve new Model data before it is persisted.
 
@@ -49,9 +49,7 @@ The config allows you to change the polymorphic pivot name. It should end with `
 ## Usage
 
 > [!NOTE]
-> The package utilises Enums, so both PHP >= 8.1 and Laravel 10 must be used.
->
-> **Note** This package does not approve/deny the data for you, it just stores the new/amended data into the database. It is up to you to decide how you implement a function to approve or deny the Model.
+> This package does not approve/deny the data for you, it just stores the new/amended data into the database. It is up to you to decide how you implement a function to approve or deny the Model.
 
 Add the `MustBeApproved` trait to your Model and now the data will be stored in an `approvals` table, ready for you to approve or deny.
 
