@@ -3,41 +3,56 @@
 namespace Cjmellor\Approval;
 
 use Cjmellor\Approval\Console\Commands\ProcessExpiredApprovalsCommand;
+use Illuminate\Support\ServiceProvider;
 use Cjmellor\Approval\Console\Commands\UpgradeToV2Command;
 use Illuminate\Support\Facades\Schema;
-use Spatie\LaravelPackageTools\Package;
-use Spatie\LaravelPackageTools\PackageServiceProvider;
 
-class ApprovalServiceProvider extends PackageServiceProvider
+class ApprovalServiceProvider extends ServiceProvider
 {
-    public function configurePackage(Package $package): void
-    {
-        $package
-            ->name(name: 'approval')
-            ->hasConfigFile()
-            ->hasCommands([
-                ProcessExpiredApprovalsCommand::class,
-                UpgradeToV2Command::class,
-            ])
-            ->hasMigrations([
-                '2022_02_12_195950_create_approvals_table',
-                '2023_10_09_204810_add_rolled_back_at_column_to_approvals_table',
-                '2023_11_17_002135_add_audited_by_column_to_approvals_table',
-                '2024_03_16_173148_add_foreign_id_column_to_approvals_table',
-                '2025_03_04_000001_add_creator_to_approvals_table',
-                '2025_03_14_062513_add_expiration_columns_to_approvals_table',
-                '2025_03_15_123355_add_custom_state_to_approvals_table',
-            ]);
-    }
-
+    /**
+     * Bootstrap any package services.
+     */
     public function boot(): void
     {
-        parent::boot();
+        // Register config file
+        $this->publishes(
+            paths: [__DIR__.'/../config/approval.php' => config_path(path: 'approval.php')],
+            groups: 'approval-config'
+        );
 
+        // Register migrations
+        $this->publishes(
+            paths: [__DIR__.'/../database/migrations/' => database_path(path: 'migrations')],
+            groups: 'approval-migrations'
+        );
+
+        // Load migrations
+        $this->loadMigrationsFrom(paths: __DIR__.'/../database/migrations');
+
+        // Register commands
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                ProcessExpiredApprovalsCommand::class,
+                UpgradeToV2Command::class,
+            ]);
+        }
+        
         // Skip schema check during console commands
         if (! $this->app->runningInConsole() && class_exists('\\Cjmellor\\Approval\\Models\\Approval')) {
             $this->checkSchemaCompatibility();
         }
+    }
+
+    /**
+     * Register any package services.
+     */
+    public function register(): void
+    {
+        // Merge config
+        $this->mergeConfigFrom(
+            path: __DIR__.'/../config/approval.php',
+            key: 'approval'
+        );
     }
 
     protected function checkSchemaCompatibility(): void
