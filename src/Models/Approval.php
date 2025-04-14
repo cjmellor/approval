@@ -9,6 +9,7 @@ use Cjmellor\Approval\Scopes\ApprovalStateScope;
 use Closure;
 use DateTimeInterface;
 use Exception;
+use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -16,6 +17,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Event;
 use InvalidArgumentException;
 
+#[ScopedBy(ApprovalStateScope::class)]
 class Approval extends Model
 {
     protected $guarded = [];
@@ -28,11 +30,6 @@ class Approval extends Model
         'expires_at' => 'datetime',
         'actioned_at' => 'datetime',
     ];
-
-    public static function booted(): void
-    {
-        static::addGlobalScope(scope: new ApprovalStateScope());
-    }
 
     public function approvalable(): MorphTo
     {
@@ -47,11 +44,6 @@ class Approval extends Model
     public function requestor(): MorphTo
     {
         return $this->morphTo('creator');
-    }
-
-    public function getRequestorAttribute()
-    {
-        return $this->requestor()->first();
     }
 
     public function scopeRequestedBy($query, $requestor)
