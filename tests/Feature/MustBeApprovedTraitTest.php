@@ -80,14 +80,14 @@ test(description: 'check the creator field if no user is authenticated', closure
         table: 'approvals',
         data: [
             'creator_id' => null,
-            'creator_type' => null
+            'creator_type' => null,
         ]
     );
 });
 
 test(description: 'a model is added when the "withoutApproval()" method is used', closure: function () {
     // build a query
-    $fakeModel = new FakeModel;
+    $fakeModel = new FakeModel();
 
     $fakeModel->name = 'Bob';
     $fakeModel->meta = 'green';
@@ -114,7 +114,7 @@ test(description: 'an ApprovalCreated event is dispatched when a model is update
     $user = FakeUser::create($this->fakeUserData);
     $this->be($user);
 
-    $model = new FakeModel;
+    $model = new FakeModel();
 
     $model->name = 'Bob';
     $model->meta = 'green';
@@ -213,7 +213,7 @@ test(description: 'a Model cannot be persisted when given a flag', closure: func
 });
 
 test(description: 'an approvals model is created when a model is created with MustBeApproved trait set and has the approvalInclude array set', closure: function () {
-    $model = new class extends Model
+    $model = new class() extends Model
     {
         use MustBeApproved;
 
@@ -253,7 +253,7 @@ test(description: 'approve a attribute of the type Array', closure: function () 
         $table->foreignId('user_id')->nullable();
     });
 
-    $model = new class extends Model
+    $model = new class() extends Model
     {
         use MustBeApproved;
 
@@ -313,7 +313,7 @@ test(description: 'a Model can be rolled back when the data contains JSON fields
         $table->timestamps();
     });
 
-    $model = new class extends Model
+    $model = new class() extends Model
     {
         use MustBeApproved;
 
@@ -365,7 +365,7 @@ test(description: 'a Model can be rolled back when the data contains JSON fields
 });
 
 test('the foreign key is extracted from the payload and stored in a separate column', function () {
-    $model = new class extends Model
+    $model = new class() extends Model
     {
         use MustBeApproved;
 
@@ -401,7 +401,7 @@ test(description: 'approve a model with nested array attributes', closure: funct
         $table->json('metadata')->nullable();
     });
 
-    $model = new class extends Model
+    $model = new class() extends Model
     {
         use MustBeApproved;
 

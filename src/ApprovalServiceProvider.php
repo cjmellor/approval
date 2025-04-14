@@ -3,9 +3,9 @@
 namespace Cjmellor\Approval;
 
 use Cjmellor\Approval\Console\Commands\ProcessExpiredApprovalsCommand;
-use Illuminate\Support\ServiceProvider;
 use Cjmellor\Approval\Console\Commands\UpgradeToV2Command;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\ServiceProvider;
 
 class ApprovalServiceProvider extends ServiceProvider
 {
@@ -36,7 +36,7 @@ class ApprovalServiceProvider extends ServiceProvider
                 UpgradeToV2Command::class,
             ]);
         }
-        
+
         // Skip schema check during console commands
         if (! $this->app->runningInConsole() && class_exists('\\Cjmellor\\Approval\\Models\\Approval')) {
             $this->checkSchemaCompatibility();

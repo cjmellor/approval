@@ -12,7 +12,6 @@ class ModelApproved
 
     public function __construct(
         public Model $approval,
-        public Authenticatable|null $user,
-    ) {
-    }
+        public ?Authenticatable $user,
+    ) {}
 }

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class FakeModel extends Model
 {
-    use MustBeApproved, HasFactory;
+    use HasFactory, MustBeApproved;
 
     /**
      * @var array
