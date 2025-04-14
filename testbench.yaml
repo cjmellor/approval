@@ -1,0 +1,36 @@
+laravel: '@testbench'
+
+providers:
+  - Cjmellor\Approval\ApprovalServiceProvider
+
+migrations:
+  - workbench/database/migrations
+
+seeders:
+ - Workbench\Database\Seeders\DatabaseSeeder
+
+workbench:
+  start: '/dashboard'
+  install: true
+  auth: true
+  guard: web
+  user: 1
+  health: false
+  discovers:
+    web: true
+    api: false
+    config: true
+    commands: true
+    components: false
+    views: false
+  build:
+    - asset-publish
+    - create-sqlite-db
+    - db-wipe
+    - migrate-fresh
+  assets:
+    - laravel-assets
+  sync:
+    - from: storage
+      to: workbench/storage
+      reverse: true
