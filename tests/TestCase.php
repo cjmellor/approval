@@ -4,11 +4,12 @@ namespace Cjmellor\Approval\Tests;
 
 use Cjmellor\Approval\ApprovalServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Orchestra\Testbench\TestCase as Orchestra;
+use Orchestra\Testbench\Concerns\WithWorkbench;
 
-class TestCase extends Orchestra
+class TestCase extends \Orchestra\Testbench\TestCase
 {
     use RefreshDatabase;
+    use WithWorkbench;
 
     protected function setUp(): void
     {
