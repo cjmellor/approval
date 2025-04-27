@@ -48,7 +48,7 @@
             "@php ./vendor/bin/testbench package:discover --ansi"
         ],
         "test": "vendor/bin/pest",
-        "test-coverage": "vendor/bin/pest --coverage",
+        "test:types": "vendor/bin/pest --type-coverage",
         "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
         "prepare": "@php vendor/bin/testbench package:discover --ansi",
         "build": "@php vendor/bin/testbench workbench:build --ansi",
