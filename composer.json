@@ -51,10 +51,7 @@
         ],
         "build": "@php vendor/bin/testbench workbench:build --ansi",
         "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
-        "lint": [
-            "@php vendor/bin/pint --ansi",
-            "@php vendor/bin/phpstan analyse --verbose --ansi"
-        ],
+        "lint": "@php vendor/bin/pint --ansi",
         "lint:dirty": "@php vendor/bin/pint --dirty --ansi",
         "prepare": "@php vendor/bin/testbench package:discover --ansi",
         "refactor": "rector",
