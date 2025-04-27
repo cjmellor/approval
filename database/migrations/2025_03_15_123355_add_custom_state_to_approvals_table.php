@@ -10,7 +10,7 @@ return new class() extends Migration
 {
     public function up(): void
     {
-        Schema::table('approvals', function (Blueprint $table) {
+        Schema::table('approvals', function (Blueprint $table): void {
             $table->string('custom_state')->nullable()->after('state');
         });
     }

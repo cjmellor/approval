@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class() extends Migration
 {
-    public function up()
+    public function up(): void
     {
-        Schema::create(table: 'approvals', callback: function (Blueprint $table) {
+        Schema::create(table: 'approvals', callback: function (Blueprint $table): void {
             $table->id();
             $table->nullableMorphs(config(key: 'approval.approval.approval_pivot'));
             $table->enum('state', ['pending', 'approved', 'rejected'])->default('pending');
@@ -20,7 +20,7 @@ return new class() extends Migration
         });
     }
 
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists(table: 'approvals');
     }

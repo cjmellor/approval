@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
 
-test(description: 'an approval can use a custom state', closure: function () {
+test(description: 'an approval can use a custom state', closure: function (): void {
     // Setup config with a custom state
     config()->set('approval.states', [
         'pending' => [
@@ -34,7 +34,7 @@ test(description: 'an approval can use a custom state', closure: function () {
     expect($approval->fresh()->getState())->toBe('in_review');
 });
 
-test(description: 'throws exception when setting an undefined state', closure: function () {
+test(description: 'throws exception when setting an undefined state', closure: function (): void {
     // Create a model that will generate an approval
     FakeModel::create($this->fakeModelData);
 
@@ -49,7 +49,7 @@ test(description: 'throws exception when setting an undefined state', closure: f
         );
 });
 
-test(description: 'can query approvals by custom state', closure: function () {
+test(description: 'can query approvals by custom state', closure: function (): void {
     // Setup config with custom states
     config()->set('approval.states', [
         'pending' => ['name' => 'Pending', 'default' => true],

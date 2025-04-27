@@ -135,7 +135,7 @@ test(description: 'upgrade successfully migrates schema with confirmation', clos
     // Verify data integrity for a specific record with multibyte characters
     $record = DB::table(table: 'approvals')->where('approvalable_id', 5)->first();
     expect($record)->not->toBeNull()
-        ->and(json_decode($record->new_data))
+        ->and(json_decode((string) $record->new_data))
         ->toBeObject()
         ->name->toBe(expected: 'Test with UTF-8: 你好, こんにちは, 안녕하세요');
 });

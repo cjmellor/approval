@@ -13,7 +13,7 @@ return new class() extends Migration
      */
     public function up(): void
     {
-        Schema::table('approvals', function (Blueprint $table) {
+        Schema::table('approvals', function (Blueprint $table): void {
             $table->foreignId('audited_by')
                 ->after('original_data')
                 ->nullable()
@@ -26,7 +26,7 @@ return new class() extends Migration
      */
     public function down(): void
     {
-        Schema::table('approvals', function (Blueprint $table) {
+        Schema::table('approvals', function (Blueprint $table): void {
             //
         });
     }

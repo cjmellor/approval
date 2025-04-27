@@ -6,8 +6,10 @@ namespace Cjmellor\Approval;
 
 use Cjmellor\Approval\Console\Commands\ProcessExpiredApprovalsCommand;
 use Cjmellor\Approval\Console\Commands\UpgradeToV2Command;
+use Cjmellor\Approval\Models\Approval;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Override;
 use PDOException;
 use RuntimeException;
 
@@ -42,7 +44,7 @@ class ApprovalServiceProvider extends ServiceProvider
         }
 
         // Skip schema check during console commands
-        if (! $this->app->runningInConsole() && class_exists('\\Cjmellor\\Approval\\Models\\Approval')) {
+        if (! $this->app->runningInConsole() && class_exists(Approval::class)) {
             $this->checkSchemaCompatibility();
         }
     }
@@ -50,6 +52,7 @@ class ApprovalServiceProvider extends ServiceProvider
     /**
      * Register any package services.
      */
+    #[Override]
     public function register(): void
     {
         // Merge config
@@ -62,14 +65,11 @@ class ApprovalServiceProvider extends ServiceProvider
     protected function checkSchemaCompatibility(): void
     {
         try {
-            if (Schema::hasTable('approvals') && ! Schema::hasColumn('approvals', 'custom_state')) {
-                // Using v2 package with v1 schema
-                throw new RuntimeException(
-                    "You've upgraded to Approval v2 but need to upgrade your database schema. ".
-                    "Run 'php artisan approval:upgrade-to-v2' to safely upgrade."
-                );
-            }
-        } catch (PDOException $e) {
+            throw_if(Schema::hasTable('approvals') && ! Schema::hasColumn('approvals', 'custom_state'), new RuntimeException(
+                "You've upgraded to Approval v2 but need to upgrade your database schema. ".
+                "Run 'php artisan approval:upgrade-to-v2' to safely upgrade."
+            ));
+        } catch (PDOException) {
             // Database connection issues - skip the check
         }
     }

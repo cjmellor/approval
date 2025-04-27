@@ -10,8 +10,8 @@ return new class() extends Migration
 {
     public function up(): void
     {
-        Schema::table(table: 'approvals', callback: function (Blueprint $table) {
-            $table->after(column: 'rolled_back_at', callback: function (Blueprint $table) {
+        Schema::table(table: 'approvals', callback: function (Blueprint $table): void {
+            $table->after(column: 'rolled_back_at', callback: function (Blueprint $table): void {
                 $table->timestamp(column: 'expires_at')->nullable();
                 $table->string(column: 'expiration_action')->nullable();
                 $table->timestamp(column: 'actioned_at')->nullable();

@@ -87,7 +87,7 @@ test(description: 'A Model can be Postponed', closure: function (): void {
     $this->assertDatabaseMissing(table: 'fake_models', data: $this->fakeModelData);
 });
 
-it(description: 'only changes the status of the requested model', closure: function () {
+it(description: 'only changes the status of the requested model', closure: function (): void {
     FakeModel::create($this->fakeModelData);
     FakeModel::create(['name' => 'Bob', 'meta' => 'green']);
 
@@ -203,7 +203,7 @@ test(description: 'A Model can be Postponed unless a condition is met', closure:
     $this->assertDatabaseMissing(table: 'fake_models', data: $this->fakeModelData);
 });
 
-test(description: 'The model approver is listed correctly', closure: function () {
+test(description: 'The model approver is listed correctly', closure: function (): void {
     $user = FakeUser::create($this->fakeUserData);
 
     $this->be($user);
@@ -216,7 +216,7 @@ test(description: 'The model approver is listed correctly', closure: function ()
     expect($approval)->fresh()->audited_by->toBe(expected: $user->id);
 });
 
-test(description: 'The model foreign key is set correctly', closure: function () {
+test(description: 'The model foreign key is set correctly', closure: function (): void {
     $user = FakeUser::create($this->fakeUserData);
 
     $this->be($user);
@@ -239,7 +239,7 @@ test(description: 'The model foreign key is set correctly', closure: function ()
     );
 });
 
-test(description: 'can query expired and non-expired approvals', closure: function () {
+test(description: 'can query expired and non-expired approvals', closure: function (): void {
     // Create expired approval
     FakeModel::create(['name' => 'Expired Model', 'meta' => 'red']);
     $expiredApproval = Approval::first();

@@ -2,6 +2,7 @@
 
 namespace Cjmellor\Approval\Tests;
 
+use Override;
 use Cjmellor\Approval\ApprovalServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Orchestra\Testbench\Concerns\WithWorkbench;
@@ -11,6 +12,7 @@ class TestCase extends \Orchestra\Testbench\TestCase
     use RefreshDatabase;
     use WithWorkbench;
 
+    #[Override]
     protected function setUp(): void
     {
         parent::setUp();
@@ -30,7 +32,7 @@ class TestCase extends \Orchestra\Testbench\TestCase
         ];
     }
 
-    public function getEnvironmentSetUp($app)
+    public function getEnvironmentSetUp($app): void
     {
         config()->set('database.default', 'sqlite');
         config()->set('database.connections.sqlite', [

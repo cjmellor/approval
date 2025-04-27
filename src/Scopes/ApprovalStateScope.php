@@ -197,7 +197,7 @@ class ApprovalStateScope implements Scope
             'notExpired',
             fn (Builder $builder): Builder => $builder
                 ->withAnyState()
-                ->where(function (Builder $query) {
+                ->where(function (Builder $query): void {
                     $query->whereNull('expires_at')
                         ->orWhere('expires_at', '>=', now());
                 })

@@ -35,21 +35,19 @@ class UpgradeToV2Command extends Command
         }
 
         try {
-            DB::transaction(function () {
+            DB::transaction(function (): void {
                 // 1. Log current approvals count for verification
                 $initialCount = DB::table('approvals')->count();
                 $this->info("Found {$initialCount} existing approval records to migrate");
 
                 // 2. Add custom_state column
-                Schema::table('approvals', function (Blueprint $table) {
+                Schema::table('approvals', function (Blueprint $table): void {
                     $table->string('custom_state')->nullable()->after('state');
                 });
 
                 // 3. Verify data integrity
                 $finalCount = DB::table('approvals')->count();
-                if ($finalCount !== $initialCount) {
-                    throw new RuntimeException("Data verification failed: before ({$initialCount}) vs after ({$finalCount})");
-                }
+                throw_if($finalCount !== $initialCount, new RuntimeException("Data verification failed: before ({$initialCount}) vs after ({$finalCount})"));
 
                 $this->info('✅ Database schema successfully upgraded to v2');
             });

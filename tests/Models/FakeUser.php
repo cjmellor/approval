@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Cjmellor\Approval\Tests\Models;
 
-class FakeUser extends \Illuminate\Foundation\Auth\User
+use Illuminate\Foundation\Auth\User;
+
+class FakeUser extends User
 {
     public $timestamps = false;
 

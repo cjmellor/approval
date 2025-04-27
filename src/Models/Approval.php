@@ -57,24 +57,14 @@ class Approval extends Model
             Event::dispatch(new ApprovalExpired($approval, auth()->user()));
 
             // Process based on expiration action
-            switch ($approval->expiration_action) {
-                case 'reject':
-                    $approval->reject();
-                    break;
-
-                case 'postpone':
-                    $approval->postpone();
-                    break;
-
-                case 'custom':
-                    // For custom actions, we just rely on event listeners
-                    $approval->save(); // Save the actioned_at timestamp
-                    break;
-
-                default:
-                    // No action specified, just mark as actioned
-                    $approval->save();
-            }
+            match ($approval->expiration_action) {
+                'reject' => $approval->reject(),
+                'postpone' => $approval->postpone(),
+                // For custom actions, we just rely on event listeners
+                'custom' => $approval->save(),
+                // No action specified, just mark as actioned
+                default => $approval->save(),
+            };
 
             $processed++;
         }
@@ -94,7 +84,7 @@ class Approval extends Model
 
     public function scopeRequestedBy(Builder $query, Model $requestor): Builder
     {
-        return $query->where('creator_type', get_class($requestor))
+        return $query->where('creator_type', $requestor::class)
             ->where('creator_id', $requestor->getKey());
     }
 
@@ -184,7 +174,7 @@ class Approval extends Model
         ?DateTimeInterface $datetime = null
     ): self {
         $this->expires_at = match (true) {
-            $datetime !== null => $datetime,
+            $datetime instanceof DateTimeInterface => $datetime,
             $days !== null => now()->addDays($days),
             $hours !== null => now()->addHours($hours),
             $minutes !== null => now()->addMinutes($minutes),
@@ -253,9 +243,7 @@ class Approval extends Model
         // Get states from config
         $states = config('approval.states');
 
-        if (! $states || ! array_key_exists($state, $states)) {
-            throw new InvalidArgumentException("State '{$state}' is not defined in the approval configuration.");
-        }
+        throw_if(! $states || ! array_key_exists($state, $states), new InvalidArgumentException("State '{$state}' is not defined in the approval configuration."));
 
         // For standard states, use the enum
         if (in_array($state, ['pending', 'approved', 'rejected'])) {

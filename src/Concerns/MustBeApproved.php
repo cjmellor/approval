@@ -91,7 +91,7 @@ trait MustBeApproved
 
         foreach ($filteredDirty as $key => $value) {
             if (isset($model->casts[$key]) && ($model->casts[$key] === 'json' || $model->casts[$key] === 'array')) {
-                $filteredDirty[$key] = json_decode(json: $value, associative: true);
+                $filteredDirty[$key] = json_decode(json: (string) $value, associative: true);
             }
         }
 
@@ -120,17 +120,14 @@ trait MustBeApproved
             'new_data' => $filteredDirty,
             'original_data' => $model->getOriginalMatchingChanges(),
             'creator_id' => auth()->id(),
-            'creator_type' => auth()->user() ? get_class(auth()->user()) : null,
+            'creator_type' => auth()->user() ? auth()->user()::class : null,
             'foreign_key' => $foreignKeyValue,
         ]);
 
-        Event::dispatch(new ApprovalCreated($approval, auth()->user())); // Dispatch the event
+        Event::dispatch(new ApprovalCreated($approval, auth()->user()));
 
-        if (empty($noApprovalNeeded)) {
-            return false;
-        }
-
-        return true;
+        // Dispatch the event
+        return ! empty($noApprovalNeeded);
     }
 
     /**

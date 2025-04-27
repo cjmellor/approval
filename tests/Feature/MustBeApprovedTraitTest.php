@@ -23,7 +23,7 @@ it(description: 'stores the data correctly in the database')
     ]);
 
 test(description: 'an ApprovalCreated event is dispatched when a model is created with MustBeApproved trait set',
-    closure: function () {
+    closure: function (): void {
         // Arrange
         Event::fake(eventsToFake: ApprovalCreated::class);
 
@@ -33,10 +33,8 @@ test(description: 'an ApprovalCreated event is dispatched when a model is create
         FakeModel::create($this->fakeModelData);
 
         // Assert
-        Event::assertDispatched(function (ApprovalCreated $event) use ($user) {
-            return $event->approval->new_data->toArray() === $this->fakeModelData
-                && $event->user->is($user);
-        });
+        Event::assertDispatched(fn (ApprovalCreated $event): bool => $event->approval->new_data->toArray() === $this->fakeModelData
+            && $event->user->is($user));
     });
 
 test(description: 'an approvals model is created when a model is created with MustBeApproved trait set')
@@ -56,7 +54,7 @@ test(description: 'an approvals model is created when a model is created with Mu
         'meta' => 'red',
     ]);
 
-test(description: 'check the creator field if user is authenticated', closure: function () {
+test(description: 'check the creator field if user is authenticated', closure: function (): void {
     $user = $this->createAndAuthenticateUser();
 
     $fakeModel = new FakeModel();
@@ -73,7 +71,7 @@ test(description: 'check the creator field if user is authenticated', closure: f
     );
 });
 
-test(description: 'check the creator field if no user is authenticated', closure: function () {
+test(description: 'check the creator field if no user is authenticated', closure: function (): void {
     $fakeModel = new FakeModel();
 
     $fakeModel->name = 'Bob';
@@ -88,7 +86,7 @@ test(description: 'check the creator field if no user is authenticated', closure
     );
 });
 
-test(description: 'a model is added when the "withoutApproval()" method is used', closure: function () {
+test(description: 'a model is added when the "withoutApproval()" method is used', closure: function (): void {
     // build a query
     $fakeModel = new FakeModel();
 
@@ -111,7 +109,7 @@ test(description: 'a model is added when the "withoutApproval()" method is used'
 });
 
 test(description: 'an ApprovalCreated event is dispatched when a model is updated with MustBeApproved trait set',
-    closure: function () {
+    closure: function (): void {
         // Arrange
         Event::fake([ApprovalCreated::class]);
 
@@ -128,13 +126,11 @@ test(description: 'an ApprovalCreated event is dispatched when a model is update
         $model->fresh()->update(['name' => 'Chris']);
 
         // Assert
-        Event::assertDispatched(function (ApprovalCreated $event) {
-            return $event->approval->new_data->toArray() === ['name' => 'Chris']
-                && $event->user->is(auth()->user());
-        });
+        Event::assertDispatched(fn (ApprovalCreated $event): bool => $event->approval->new_data->toArray() === ['name' => 'Chris']
+            && $event->user->is(auth()->user()));
     });
 
-test(description: 'an approval model cannot be duplicated', closure: function () {
+test(description: 'an approval model cannot be duplicated', closure: function (): void {
     // create a fake model with data
     FakeModel::create($this->fakeModelData);
 
@@ -150,7 +146,7 @@ test(description: 'an approval model cannot be duplicated', closure: function ()
     $this->assertDatabaseCount('approvals', 1);
 });
 
-test(description: 'a Model is added to the corresponding table when approved', closure: function () {
+test(description: 'a Model is added to the corresponding table when approved', closure: function (): void {
     // create a fake model with data
     FakeModel::create($this->fakeModelData);
 
@@ -169,7 +165,7 @@ test(description: 'a Model is added to the corresponding table when approved', c
     $this->assertDatabaseHas(table: FakeModel::class, data: $this->fakeModelData);
 });
 
-test(description: 'A Model that is only being updated, is persisted correctly to the database', closure: function () {
+test(description: 'A Model that is only being updated, is persisted correctly to the database', closure: function (): void {
     // create a fake model with data
     (new FakeModel($this->fakeModelData))
         ->withoutApproval()
@@ -199,7 +195,7 @@ test(description: 'A Model that is only being updated, is persisted correctly to
     ]);
 });
 
-test(description: 'a Model cannot be persisted when given a flag', closure: function () {
+test(description: 'a Model cannot be persisted when given a flag', closure: function (): void {
     // create a fake model with data
     FakeModel::create($this->fakeModelData);
 
@@ -216,7 +212,7 @@ test(description: 'a Model cannot be persisted when given a flag', closure: func
 });
 
 test(description: 'an approvals model is created when a model is created with MustBeApproved trait set and has the approvalInclude array set',
-    closure: function () {
+    closure: function (): void {
         $model = new class() extends Model
         {
             use MustBeApproved;
@@ -248,8 +244,8 @@ test(description: 'an approvals model is created when a model is created with Mu
         ]);
     });
 
-test(description: 'approve a attribute of the type Array', closure: function () {
-    Schema::create('fake_models_with_array', function (Blueprint $table) {
+test(description: 'approve a attribute of the type Array', closure: function (): void {
+    Schema::create('fake_models_with_array', function (Blueprint $table): void {
         $table->id();
         $table->string('name')->nullable();
         $table->string('meta')->nullable();
@@ -307,8 +303,8 @@ test(description: 'approve a attribute of the type Array', closure: function () 
         ->toBe(['foo', 'bar']);
 });
 
-test(description: 'a Model can be rolled back when the data contains JSON fields', closure: function () {
-    Schema::create('posts', function (Blueprint $table) {
+test(description: 'a Model can be rolled back when the data contains JSON fields', closure: function (): void {
+    Schema::create('posts', function (Blueprint $table): void {
         $table->id();
         $table->string('title');
         $table->string('content');
@@ -368,7 +364,7 @@ test(description: 'a Model can be rolled back when the data contains JSON fields
         ->toBe(['checked' => true]);
 });
 
-test('the foreign key is extracted from the payload and stored in a separate column', function () {
+test('the foreign key is extracted from the payload and stored in a separate column', function (): void {
     $model = new class() extends Model
     {
         use MustBeApproved;
@@ -397,8 +393,8 @@ test('the foreign key is extracted from the payload and stored in a separate col
     ]);
 });
 
-test(description: 'approve a model with nested array attributes', closure: function () {
-    Schema::create('models_with_nested_arrays', function (Blueprint $table) {
+test(description: 'approve a model with nested array attributes', closure: function (): void {
+    Schema::create('models_with_nested_arrays', function (Blueprint $table): void {
         $table->id();
         $table->string('name')->nullable();
         $table->json('settings')->nullable();

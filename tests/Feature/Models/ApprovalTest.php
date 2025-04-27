@@ -10,7 +10,8 @@ use Cjmellor\Approval\Events\ModelSetPending;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
 use Cjmellor\Approval\Tests\Models\FakeUser;
-use Workbench\App\Models\User;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 test(description: 'an Approved Model can be rolled back and doesn\'t bypass', closure: function (): void {
     // Build a query
@@ -44,7 +45,7 @@ test(description: 'an Approved Model can be rolled back and doesn\'t bypass', cl
     // Assert the Events were fired
     Event::assertDispatched(fn (ModelRolledBackEvent $event
     ): bool => $event->approval->is($fakeModel->fresh()->approvals()->first())
-        && $event->user === null);
+        && ! $event->user instanceof Authenticatable);
 });
 
 test(description: 'an Approved Model can be rolled back and bypass', closure: function (): void {
@@ -74,7 +75,7 @@ test(description: 'an Approved Model can be rolled back and bypass', closure: fu
         ->rolled_back_at->not->toBeNull();
 });
 
-test(description: 'a rolled back Approval can be conditionally set', closure: function () {
+test(description: 'a rolled back Approval can be conditionally set', closure: function (): void {
     // Build a query
     $fakeModel = new FakeModel();
 
@@ -91,7 +92,7 @@ test(description: 'a rolled back Approval can be conditionally set', closure: fu
     $fakeModel->fresh()->approvals()->first()->approve();
 
     // Conditionally rollback the data
-    $fakeModel->fresh()->approvals()->first()->rollback(condition: fn () => true, bypass: false);
+    $fakeModel->fresh()->approvals()->first()->rollback(condition: fn (): true => true, bypass: false);
 
     // Check the model has been rolled back
     expect($fakeModel->fresh()->approvals()->first())
@@ -101,7 +102,7 @@ test(description: 'a rolled back Approval can be conditionally set', closure: fu
         ->rolled_back_at->not->toBeNull();
 });
 
-test(description: 'requestor method returns a morphTo relationship', closure: function () {
+test(description: 'requestor method returns a morphTo relationship', closure: function (): void {
     // Create a user
     $user = FakeUser::create($this->fakeUserData);
 
@@ -117,10 +118,10 @@ test(description: 'requestor method returns a morphTo relationship', closure: fu
     // Get the approval directly from the database
     $approval = Approval::first();
 
-    expect($approval->requestor())->toBeInstanceOf(Illuminate\Database\Eloquent\Relations\MorphTo::class);
+    expect($approval->requestor())->toBeInstanceOf(MorphTo::class);
 });
 
-test(description: 'getRequestorAttribute returns the user that requested approval', closure: function () {
+test(description: 'getRequestorAttribute returns the user that requested approval', closure: function (): void {
     // Create a user
     $user = FakeUser::create($this->fakeUserData);
 
@@ -142,7 +143,7 @@ test(description: 'getRequestorAttribute returns the user that requested approva
         ->name->toBe($user->name);
 });
 
-test(description: 'scopeRequestedBy correctly filters approvals by requestor', closure: function () {
+test(description: 'scopeRequestedBy correctly filters approvals by requestor', closure: function (): void {
     // Create two users
     $user1 = FakeUser::create([
         'name' => 'User One',
@@ -176,7 +177,7 @@ test(description: 'scopeRequestedBy correctly filters approvals by requestor', c
     expect($user1Approvals->first()->creator_id)->toBe($user1->id);
 });
 
-test(description: 'wasRequestedBy correctly identifies if a model requested the approval', closure: function () {
+test(description: 'wasRequestedBy correctly identifies if a model requested the approval', closure: function (): void {
     // Create two users
     $user1 = FakeUser::create([
         'name' => 'User One',
@@ -206,7 +207,7 @@ test('can set expiration time with different parameters', function (
     array $params,
     callable $expectedTimeGenerator,
     int $expectedDuration
-) {
+): void {
     // Create a fake model which creates an approval
     FakeModel::create($this->fakeModelData);
 
@@ -234,7 +235,7 @@ test('can set expiration time with different parameters', function (
     [['datetime' => now()->addWeek()], fn () => now()->addWeek(), 7 * 86400], // Same as days
 ]);
 
-test(description: 'throws exception when no expiration time is provided', closure: function () {
+test(description: 'throws exception when no expiration time is provided', closure: function (): void {
     FakeModel::create($this->fakeModelData);
 
     $approval = Approval::first();
@@ -242,7 +243,7 @@ test(description: 'throws exception when no expiration time is provided', closur
     expect(fn () => $approval->expiresIn())->toThrow(exception: InvalidArgumentException::class);
 });
 
-test(description: 'can check if an approval is expired', closure: function () {
+test(description: 'can check if an approval is expired', closure: function (): void {
     FakeModel::create($this->fakeModelData);
 
     $approval = Approval::first();
@@ -256,7 +257,7 @@ test(description: 'can check if an approval is expired', closure: function () {
     expect($approval->isExpired())->toBeFalse();
 });
 
-test('can set automatic actions on expiration', function (string $method, string $expectedAction) {
+test('can set automatic actions on expiration', function (string $method, string $expectedAction): void {
     FakeModel::create($this->fakeModelData);
 
     $approval = Approval::first();
@@ -271,7 +272,7 @@ test('can set automatic actions on expiration', function (string $method, string
     ['thenPostpone', 'postpone'],
 ]);
 
-test(description: 'can set custom action on expiration', closure: function () {
+test(description: 'can set custom action on expiration', closure: function (): void {
     FakeModel::create($this->fakeModelData);
     $approval = Approval::first();
 
@@ -286,7 +287,7 @@ test(description: 'can set custom action on expiration', closure: function () {
     expect($approval->fresh()->expiration_action)->toBe(expected: 'custom');
 });
 
-test(description: 'can process expired approvals', closure: function () {
+test(description: 'can process expired approvals', closure: function (): void {
     // Create and set up approvals with different actions
     FakeModel::create(['name' => 'Model 1', 'meta' => 'red']);
     $rejectionApproval = Approval::first();
@@ -332,7 +333,7 @@ test(description: 'can process expired approvals', closure: function () {
     Event::assertDispatched(event: ModelSetPending::class, callback: 1);
 });
 
-test(description: 'artisan command processes expired approvals', closure: function () {
+test(description: 'artisan command processes expired approvals', closure: function (): void {
     // Create an expired approval
     FakeModel::create([
         'name' => 'Test Model',

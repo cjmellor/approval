@@ -11,7 +11,7 @@ trait MustBeApprovedFactory
 {
     public function withoutApproval(): Factory
     {
-        return $this->afterMaking(function (Model $model) {
+        return $this->afterMaking(function (Model $model): void {
             if (in_array(MustBeApproved::class, class_uses($model))) {
                 $model->withoutApproval();
             }
