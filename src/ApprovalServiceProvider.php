@@ -1,11 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cjmellor\Approval;
 
 use Cjmellor\Approval\Console\Commands\ProcessExpiredApprovalsCommand;
 use Cjmellor\Approval\Console\Commands\UpgradeToV2Command;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use PDOException;
+use RuntimeException;
 
 class ApprovalServiceProvider extends ServiceProvider
 {
@@ -60,12 +64,12 @@ class ApprovalServiceProvider extends ServiceProvider
         try {
             if (Schema::hasTable('approvals') && ! Schema::hasColumn('approvals', 'custom_state')) {
                 // Using v2 package with v1 schema
-                throw new \RuntimeException(
+                throw new RuntimeException(
                     "You've upgraded to Approval v2 but need to upgrade your database schema. ".
                     "Run 'php artisan approval:upgrade-to-v2' to safely upgrade."
                 );
             }
-        } catch (\PDOException $e) {
+        } catch (PDOException $e) {
             // Database connection issues - skip the check
         }
     }

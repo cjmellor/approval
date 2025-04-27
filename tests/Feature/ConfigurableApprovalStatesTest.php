@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Cjmellor\Approval\Concerns\MustBeApproved;
 use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Events\ApprovalCreated;
@@ -219,13 +221,13 @@ test(description: 'an approvals model is created when a model is created with Mu
         {
             use MustBeApproved;
 
+            public $timestamps = false;
+
             protected $table = 'fake_models';
 
             protected array $approvalAttributes = ['name'];
 
             protected $guarded = [];
-
-            public $timestamps = false;
         };
 
         // create a model
@@ -259,11 +261,11 @@ test(description: 'approve a attribute of the type Array', closure: function () 
     {
         use MustBeApproved;
 
+        public $timestamps = false;
+
         protected $table = 'fake_models_with_array';
 
         protected $guarded = [];
-
-        public $timestamps = false;
 
         protected $casts = ['data' => 'array'];
     };
@@ -371,11 +373,11 @@ test('the foreign key is extracted from the payload and stored in a separate col
     {
         use MustBeApproved;
 
+        public $timestamps = false;
+
         protected $table = 'fake_models';
 
         protected $guarded = [];
-
-        public $timestamps = false;
 
         public function getApprovalForeignKeyName(): string
         {
@@ -407,11 +409,11 @@ test(description: 'approve a model with nested array attributes', closure: funct
     {
         use MustBeApproved;
 
+        public $timestamps = false;
+
         protected $table = 'models_with_nested_arrays';
 
         protected $guarded = [];
-
-        public $timestamps = false;
 
         protected $casts = [
             'settings' => 'array',

@@ -151,7 +151,7 @@ class ApprovalStateScope implements Scope
             $auditedData['audited_by'] = auth()->id();
         }
 
-        return $builder
+        return (int) $builder
             ->find(id: $builder->getModel()->id)
             ->update($auditedData);
     }

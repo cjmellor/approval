@@ -1,11 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cjmellor\Approval\Console\Commands;
 
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 
 class UpgradeToV2Command extends Command
 {
@@ -44,7 +48,7 @@ class UpgradeToV2Command extends Command
                 // 3. Verify data integrity
                 $finalCount = DB::table('approvals')->count();
                 if ($finalCount !== $initialCount) {
-                    throw new \RuntimeException("Data verification failed: before ({$initialCount}) vs after ({$finalCount})");
+                    throw new RuntimeException("Data verification failed: before ({$initialCount}) vs after ({$finalCount})");
                 }
 
                 $this->info('✅ Database schema successfully upgraded to v2');
@@ -54,7 +58,7 @@ class UpgradeToV2Command extends Command
             $this->info('To use custom approval states, run: php artisan vendor:publish --tag="approval-config"');
 
             return self::SUCCESS;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error('❌ Upgrade failed: '.$e->getMessage());
 
             return self::FAILURE;

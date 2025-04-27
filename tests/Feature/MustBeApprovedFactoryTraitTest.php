@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Cjmellor\Approval\Tests\Models\FakeModel;
 
 test(description: 'a model is added via a factory when the "withoutApproval()" method is used ', closure: function () {

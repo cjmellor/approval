@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Tests\TestCase;
 use Cjmellor\Approval\Tests\Traits\WithTestUser;

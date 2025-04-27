@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cjmellor\Approval\Tests\Models;
 
 use Cjmellor\Approval\Concerns\MustBeApproved;
@@ -13,14 +15,14 @@ class FakeModel extends Model
     use HasFactory, MustBeApproved;
 
     /**
-     * @var array
-     */
-    protected $guarded = [];
-
-    /**
      * @var bool
      */
     public $timestamps = false;
+
+    /**
+     * @var array
+     */
+    protected $guarded = [];
 
     protected static function newFactory(): Factory
     {

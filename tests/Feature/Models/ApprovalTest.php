@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Events\ApprovalExpired;
 use Cjmellor\Approval\Events\ModelRejected;
@@ -115,7 +117,7 @@ test(description: 'requestor method returns a morphTo relationship', closure: fu
     // Get the approval directly from the database
     $approval = Approval::first();
 
-    expect($approval->requestor())->toBeInstanceOf(\Illuminate\Database\Eloquent\Relations\MorphTo::class);
+    expect($approval->requestor())->toBeInstanceOf(Illuminate\Database\Eloquent\Relations\MorphTo::class);
 });
 
 test(description: 'getRequestorAttribute returns the user that requested approval', closure: function () {
@@ -237,7 +239,7 @@ test(description: 'throws exception when no expiration time is provided', closur
 
     $approval = Approval::first();
 
-    expect(fn () => $approval->expiresIn())->toThrow(exception: \InvalidArgumentException::class);
+    expect(fn () => $approval->expiresIn())->toThrow(exception: InvalidArgumentException::class);
 });
 
 test(description: 'can check if an approval is expired', closure: function () {

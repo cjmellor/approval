@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cjmellor\Approval\Console\Commands;
 
 use Cjmellor\Approval\Models\Approval;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cjmellor\Approval\Concerns;
 
 use Cjmellor\Approval\Enums\ApprovalStatus;
@@ -16,6 +18,63 @@ trait MustBeApproved
     {
         static::creating(callback: fn ($model): ?bool => static::insertApprovalRequest($model));
         static::updating(callback: fn ($model): ?bool => static::insertApprovalRequest($model));
+    }
+
+    public function getApprovalAttributes(): array
+    {
+        return $this->approvalAttributes ?? [];
+    }
+
+    /**
+     * Get the name of the foreign key for the model.
+     */
+    public function getApprovalForeignKeyName(): string
+    {
+        return 'user_id';
+    }
+
+    /**
+     * Check is the approval can be bypassed.
+     */
+    public function isApprovalBypassed(): bool
+    {
+        return $this->bypassApproval;
+    }
+
+    /**
+     * The polymorphic relationship for the Approval model.
+     */
+    public function approvals(): MorphMany
+    {
+        return $this->morphMany(related: Approval::class, name: 'approvalable');
+    }
+
+    /**
+     * Approval is ignored and persisted to the database.
+     */
+    public function withoutApproval(): static
+    {
+        $this->bypassApproval = true;
+
+        return $this;
+    }
+
+    /**
+     * Wrapper to access the castAttribute function
+     */
+    public function callCastAttribute($key, $value): mixed
+    {
+        if (array_key_exists($key, $this->casts)) {
+            // If the value is already an array, return it as is
+            if (is_array($value)) {
+                return $value;
+            }
+
+            // Otherwise, cast the attribute to its defined type
+            return $this->castAttribute($key, $value);
+        }
+
+        return $value;
     }
 
     /**
@@ -75,6 +134,18 @@ trait MustBeApproved
     }
 
     /**
+     * Check if the Approval model been created already exists with a 'pending' state
+     */
+    protected static function approvalModelExists($model): bool
+    {
+        return Approval::where([
+            ['state', '=', ApprovalStatus::Pending],
+            ['new_data', '=', json_encode($model->getDirtyAttributes())],
+            ['original_data', '=', json_encode($model->getOriginalMatchingChanges())],
+        ])->exists();
+    }
+
+    /**
      * Get the dirty attributes, but only those which should be included
      */
     protected function getDirtyAttributes(): array
@@ -88,39 +159,6 @@ trait MustBeApproved
             ->toArray();
     }
 
-    public function getApprovalAttributes(): array
-    {
-        return $this->approvalAttributes ?? [];
-    }
-
-    /**
-     * Get the name of the foreign key for the model.
-     */
-    public function getApprovalForeignKeyName(): string
-    {
-        return 'user_id';
-    }
-
-    /**
-     * Check is the approval can be bypassed.
-     */
-    public function isApprovalBypassed(): bool
-    {
-        return $this->bypassApproval;
-    }
-
-    /**
-     * Check if the Approval model been created already exists with a 'pending' state
-     */
-    protected static function approvalModelExists($model): bool
-    {
-        return Approval::where([
-            ['state', '=', ApprovalStatus::Pending],
-            ['new_data', '=', json_encode($model->getDirtyAttributes())],
-            ['original_data', '=', json_encode($model->getOriginalMatchingChanges())],
-        ])->exists();
-    }
-
     /**
      * Gets the original model data and only gets the keys that match the dirty attributes.
      */
@@ -129,41 +167,5 @@ trait MustBeApproved
         return collect($this->getOriginal())
             ->only(collect($this->getDirtyAttributes())->keys())
             ->toArray();
-    }
-
-    /**
-     * The polymorphic relationship for the Approval model.
-     */
-    public function approvals(): MorphMany
-    {
-        return $this->morphMany(related: Approval::class, name: 'approvalable');
-    }
-
-    /**
-     * Approval is ignored and persisted to the database.
-     */
-    public function withoutApproval(): static
-    {
-        $this->bypassApproval = true;
-
-        return $this;
-    }
-
-    /**
-     * Wrapper to access the castAttribute function
-     */
-    public function callCastAttribute($key, $value): mixed
-    {
-        if (array_key_exists($key, $this->casts)) {
-            // If the value is already an array, return it as is
-            if (is_array($value)) {
-                return $value;
-            }
-
-            // Otherwise, cast the attribute to its defined type
-            return $this->castAttribute($key, $value);
-        }
-
-        return $value;
     }
 }
