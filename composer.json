@@ -20,13 +20,15 @@
         "illuminate/contracts": "^11.0|^12.0"
     },
     "require-dev": {
+        "driftingly/rector-laravel": "^2.0",
         "laravel/pint": "^1.0",
         "nunomaduro/collision": "^8.0",
         "orchestra/testbench": "^10.1",
         "pestphp/pest": "^3.7",
         "pestphp/pest-plugin-arch": "^3.0",
         "pestphp/pest-plugin-laravel": "^3.1",
-        "pestphp/pest-plugin-type-coverage": "^3.3"
+        "pestphp/pest-plugin-type-coverage": "^3.3",
+        "rector/rector": "^2.0"
     },
     "autoload": {
         "psr-4": {
@@ -47,20 +49,23 @@
             "@prepare",
             "@php ./vendor/bin/testbench package:discover --ansi"
         ],
-        "test": "vendor/bin/pest",
-        "test:types": "vendor/bin/pest --type-coverage",
-        "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
-        "prepare": "@php vendor/bin/testbench package:discover --ansi",
         "build": "@php vendor/bin/testbench workbench:build --ansi",
+        "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
+        "lint": [
+            "@php vendor/bin/pint --ansi",
+            "@php vendor/bin/phpstan analyse --verbose --ansi"
+        ],
+        "lint:dirty": "@php vendor/bin/pint --dirty --ansi",
+        "prepare": "@php vendor/bin/testbench package:discover --ansi",
+        "refactor": "rector",
+        "refactor:dry-run": "rector process --dry-run",
         "serve": [
             "Composer\\Config::disableProcessTimeout",
             "@build",
             "@php vendor/bin/testbench serve --ansi"
         ],
-        "lint": [
-            "@php vendor/bin/pint --ansi",
-            "@php vendor/bin/phpstan analyse --verbose --ansi"
-        ]
+        "test": "vendor/bin/pest",
+        "test:types": "vendor/bin/pest --type-coverage"
     },
     "config": {
         "sort-packages": true,
