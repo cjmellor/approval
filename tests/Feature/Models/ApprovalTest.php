@@ -8,7 +8,7 @@ use Cjmellor\Approval\Events\ModelSetPending;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
 use Cjmellor\Approval\Tests\Models\FakeUser;
-use Illuminate\Support\Facades\Event;
+use Workbench\App\Models\User;
 
 test(description: 'an Approved Model can be rolled back and doesn\'t bypass', closure: function (): void {
     // Build a query
@@ -108,6 +108,7 @@ test(description: 'requestor method returns a morphTo relationship', closure: fu
 
     // Create model with approval
     $fakeModel = new FakeModel();
+
     $fakeModel->name = 'Test Model';
     $fakeModel->save();
 
@@ -126,6 +127,7 @@ test(description: 'getRequestorAttribute returns the user that requested approva
 
     // Create model with approval
     $fakeModel = new FakeModel();
+
     $fakeModel->name = 'Test Model';
     $fakeModel->save();
 

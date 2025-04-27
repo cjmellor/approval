@@ -60,7 +60,7 @@ test(description: 'A Model can be Approved', closure: function (): void {
 
     expect($approval)->fresh()->state->toBe(ApprovalStatus::Approved);
 
-    $this->assertDatabaseHas(table: 'fake_models', data: $this->fakeModelData);
+    $this->assertDatabaseHas(table: FakeModel::class, data: $this->fakeModelData);
 });
 
 test(description: 'A Model can be Rejected', closure: function (): void {
@@ -123,7 +123,7 @@ test(description: 'A Model can be Approved if a condition is met', closure: func
 
     Event::assertDispatched(event: ModelApproved::class);
 
-    $this->assertDatabaseHas(table: 'fake_models', data: $this->fakeModelData);
+    $this->assertDatabaseHas(table: FakeModel::class, data: $this->fakeModelData);
 });
 
 test(description: 'A Model can be Approved unless a condition is met', closure: function (): void {
@@ -138,7 +138,7 @@ test(description: 'A Model can be Approved unless a condition is met', closure: 
 
     Event::assertDispatched(event: ModelApproved::class);
 
-    $this->assertDatabaseHas(table: 'fake_models', data: $this->fakeModelData);
+    $this->assertDatabaseHas(table: FakeModel::class, data: $this->fakeModelData);
 });
 
 test(description: 'A Model can be Rejected if a condition is met', closure: function (): void {
@@ -230,8 +230,8 @@ test(description: 'The model foreign key is set correctly', closure: function ()
     $approval->approve();
 
     $this->assertDatabaseHas(
-        'fake_models',
-        [
+        table: FakeModel::class,
+        data: [
             'user_id' => $user->id,
         ]
     );

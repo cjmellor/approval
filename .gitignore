@@ -1,6 +1,5 @@
-.claudeignore
-.claudesync
-.idea
-.phpunit.cache
-.vscode
-vendor
+/.idea
+/.phpunit.cache
+/.trae
+/.vscode
+/vendor

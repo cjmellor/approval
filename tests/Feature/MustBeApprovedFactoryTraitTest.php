@@ -5,7 +5,7 @@ use Cjmellor\Approval\Tests\Models\FakeModel;
 test(description: 'a model is added via a factory when the "withoutApproval()" method is used ', closure: function () {
     FakeModel::factory()->withoutApproval()->create();
 
-    $this->assertDatabaseHas('fake_models', [
+    $this->assertDatabaseHas(table: FakeModel::class, data: [
         'name' => 'Bob',
         'meta' => 'green',
     ]);

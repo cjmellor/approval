@@ -5,42 +5,43 @@ use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Events\ApprovalCreated;
 use Cjmellor\Approval\Models\Approval;
 use Cjmellor\Approval\Tests\Models\FakeModel;
-use Cjmellor\Approval\Tests\Models\FakeUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
+use Workbench\App\Models\User;
 
 it(description: 'stores the data correctly in the database')
     ->defer(
         fn (): Approval => Approval::create($this->approvalData)
-    )->assertDatabaseHas('approvals', [
-        'approvalable_type' => FakeModel::class,
+    )->assertDatabaseHas(Approval::class, [
+        'approvalable_type' => User::class,
         'approvalable_id' => 1,
         'state' => ApprovalStatus::Pending,
     ]);
 
-test(description: 'an ApprovalCreated event is dispatched when a model is created with MustBeApproved trait set', closure: function () {
-    // Arrange
-    Event::fake([ApprovalCreated::class]);
-    $user = FakeUser::create($this->fakeUserData);
-    $this->be($user);
+test(description: 'an ApprovalCreated event is dispatched when a model is created with MustBeApproved trait set',
+    closure: function () {
+        // Arrange
+        Event::fake(eventsToFake: ApprovalCreated::class);
 
-    // Act
-    FakeModel::create($this->fakeModelData);
+        $user = $this->createAndAuthenticateUser();
 
-    // Assert
-    Event::assertDispatched(function (ApprovalCreated $event) {
-        return $event->approval->new_data->toArray() === $this->fakeModelData
-            && $event->user->id === auth()->id();
+        // Act
+        FakeModel::create($this->fakeModelData);
+
+        // Assert
+        Event::assertDispatched(function (ApprovalCreated $event) use ($user) {
+            return $event->approval->new_data->toArray() === $this->fakeModelData
+                && $event->user->is($user);
+        });
     });
-});
 
 test(description: 'an approvals model is created when a model is created with MustBeApproved trait set')
     // create a fake model
     ->defer(callable: fn () => FakeModel::create($this->fakeModelData))
     // check it has been put in the approvals' table before the fake_models table
-    ->assertDatabaseHas('approvals', [
+    ->assertDatabaseHas(Approval::class, [
         'new_data' => json_encode([
             'name' => 'Chris',
             'meta' => 'red',
@@ -54,18 +55,18 @@ test(description: 'an approvals model is created when a model is created with Mu
     ]);
 
 test(description: 'check the creator field if user is authenticated', closure: function () {
-    $user = FakeUser::create($this->fakeUserData);
-    $this->be($user);
+    $user = $this->createAndAuthenticateUser();
 
     $fakeModel = new FakeModel();
+
     $fakeModel->name = 'Bob';
     $fakeModel->save();
 
     $this->assertDatabaseHas(
-        table: 'approvals',
+        table: Approval::class,
         data: [
-            'creator_id' => 1,
-            'creator_type' => FakeUser::class,
+            'creator_id' => $user->id,
+            'creator_type' => User::class,
         ]
     );
 });
@@ -77,7 +78,7 @@ test(description: 'check the creator field if no user is authenticated', closure
     $fakeModel->save();
 
     $this->assertDatabaseHas(
-        table: 'approvals',
+        table: Approval::class,
         data: [
             'creator_id' => null,
             'creator_type' => null,
@@ -95,7 +96,7 @@ test(description: 'a model is added when the "withoutApproval()" method is used'
     // save the model, bypassing approval
     $fakeModel->withoutApproval()->save();
 
-    $this->assertDatabaseHas('fake_models', [
+    $this->assertDatabaseHas(table: FakeModel::class, data: [
         'name' => 'Bob',
         'meta' => 'green',
     ]);
@@ -107,36 +108,36 @@ test(description: 'a model is added when the "withoutApproval()" method is used'
     ]);
 });
 
-test(description: 'an ApprovalCreated event is dispatched when a model is updated with MustBeApproved trait set', closure: function () {
-    // Arrange
-    Event::fake([ApprovalCreated::class]);
+test(description: 'an ApprovalCreated event is dispatched when a model is updated with MustBeApproved trait set',
+    closure: function () {
+        // Arrange
+        Event::fake([ApprovalCreated::class]);
 
-    $user = FakeUser::create($this->fakeUserData);
-    $this->be($user);
+        $user = $this->createAndAuthenticateUser();
 
-    $model = new FakeModel();
+        $model = new FakeModel();
 
-    $model->name = 'Bob';
-    $model->meta = 'green';
+        $model->name = 'Bob';
+        $model->meta = 'green';
 
-    $model->withoutApproval()->save();
+        $model->withoutApproval()->save();
 
-    // Act
-    $model->fresh()->update(['name' => 'Chris']);
+        // Act
+        $model->fresh()->update(['name' => 'Chris']);
 
-    // Assert
-    Event::assertDispatched(function (ApprovalCreated $event) {
-        return $event->approval->new_data->toArray() === ['name' => 'Chris']
-            && $event->user->id === auth()->id();
+        // Assert
+        Event::assertDispatched(function (ApprovalCreated $event) {
+            return $event->approval->new_data->toArray() === ['name' => 'Chris']
+                && $event->user->is(auth()->user());
+        });
     });
-});
 
 test(description: 'an approval model cannot be duplicated', closure: function () {
     // create a fake model with data
     FakeModel::create($this->fakeModelData);
 
     // check it was added to the db
-    $this->assertDatabaseHas('approvals', [
+    $this->assertDatabaseHas(table: Approval::class, data: [
         'new_data' => json_encode($this->fakeModelData),
     ]);
 
@@ -152,7 +153,7 @@ test(description: 'a Model is added to the corresponding table when approved', c
     FakeModel::create($this->fakeModelData);
 
     // check it was added to the db
-    $this->assertDatabaseHas('approvals', [
+    $this->assertDatabaseHas(table: Approval::class, data: [
         'new_data' => json_encode($this->fakeModelData),
     ]);
 
@@ -163,7 +164,7 @@ test(description: 'a Model is added to the corresponding table when approved', c
     Approval::first()->approve();
 
     // check it was added to the fake_models table
-    $this->assertDatabaseHas('fake_models', $this->fakeModelData);
+    $this->assertDatabaseHas(table: FakeModel::class, data: $this->fakeModelData);
 });
 
 test(description: 'A Model that is only being updated, is persisted correctly to the database', closure: function () {
@@ -177,7 +178,7 @@ test(description: 'A Model that is only being updated, is persisted correctly to
         ->update(['name' => 'Bob']);
 
     // check it was added to the db
-    $this->assertDatabaseHas('approvals', [
+    $this->assertDatabaseHas(table: Approval::class, data: [
         'new_data' => json_encode([
             'name' => 'Bob',
         ]),
@@ -190,7 +191,7 @@ test(description: 'A Model that is only being updated, is persisted correctly to
     Approval::first()->approve();
 
     // check the fake_models table was updated correctly
-    $this->assertDatabaseHas('fake_models', [
+    $this->assertDatabaseHas(table: FakeModel::class, data: [
         'name' => 'Bob',
         'meta' => 'red',
     ]);
@@ -201,7 +202,7 @@ test(description: 'a Model cannot be persisted when given a flag', closure: func
     FakeModel::create($this->fakeModelData);
 
     // check it was added to the db
-    $this->assertDatabaseHas('approvals', [
+    $this->assertDatabaseHas(table: Approval::class, data: [
         'new_data' => json_encode($this->fakeModelData),
     ]);
 
@@ -212,37 +213,38 @@ test(description: 'a Model cannot be persisted when given a flag', closure: func
     $this->assertDatabaseCount('fake_models', 0);
 });
 
-test(description: 'an approvals model is created when a model is created with MustBeApproved trait set and has the approvalInclude array set', closure: function () {
-    $model = new class() extends Model
-    {
-        use MustBeApproved;
+test(description: 'an approvals model is created when a model is created with MustBeApproved trait set and has the approvalInclude array set',
+    closure: function () {
+        $model = new class() extends Model
+        {
+            use MustBeApproved;
 
-        protected $table = 'fake_models';
+            protected $table = 'fake_models';
 
-        protected array $approvalAttributes = ['name'];
+            protected array $approvalAttributes = ['name'];
 
-        protected $guarded = [];
+            protected $guarded = [];
 
-        public $timestamps = false;
-    };
+            public $timestamps = false;
+        };
 
-    // create a model
-    $model->create([
-        'name' => 'Neo',
-        'meta' => 'blue',
-    ]);
+        // create a model
+        $model->create([
+            'name' => 'Neo',
+            'meta' => 'blue',
+        ]);
 
-    // there should only be an approval model for the 'name' attribute, the 'meta' should be stored
-    $this->assertDatabaseHas(table: Approval::class, data: [
-        'new_data' => json_encode(['name' => 'Neo']),
-        'original_data' => json_encode([]),
-    ]);
+        // there should only be an approval model for the 'name' attribute, the 'meta' should be stored
+        $this->assertDatabaseHas(table: Approval::class, data: [
+            'new_data' => json_encode(['name' => 'Neo']),
+            'original_data' => json_encode([]),
+        ]);
 
-    // Since the 'meta' attribute was not included in approvalInclude, it should be stored
-    $this->assertDatabaseHas(table: FakeModel::class, data: [
-        'meta' => 'blue',
-    ]);
-});
+        // Since the 'meta' attribute was not included in approvalInclude, it should be stored
+        $this->assertDatabaseHas(table: FakeModel::class, data: [
+            'meta' => 'blue',
+        ]);
+    });
 
 test(description: 'approve a attribute of the type Array', closure: function () {
     Schema::create('fake_models_with_array', function (Blueprint $table) {
@@ -436,7 +438,7 @@ test(description: 'approve a model with nested array attributes', closure: funct
     $model->create($testData);
 
     // Verify data in approval table using database assertion instead of model property
-    $this->assertDatabaseHas(Approval::class, [
+    $this->assertDatabaseHas(table: Approval::class, data: [
         'new_data' => json_encode($testData),
         'original_data' => json_encode([]),
     ]);
