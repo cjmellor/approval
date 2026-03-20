@@ -13,43 +13,29 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\Scope;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 
 class ApprovalStateScope implements Scope
 {
-    /**
-     * Add extra extensions.
-     */
     private array $extensions = [
-        // Model with no state
         'WithAnyState',
-        // Get Models with state
         'Approved',
         'Pending',
         'Rejected',
-        // Set Models with state
         'Approve',
         'Postpone',
         'Reject',
-        // New expiration scopes
         'Expired',
         'NotExpired',
         'HasExpiration',
-        // Dynamic state scope
         'WhereState',
     ];
 
-    /**
-     * Apply the scope to a given Eloquent query builder.
-     */
     public function apply(Builder $builder, Model $model): void
     {
         $builder->withAnyState();
     }
 
-    /**
-     * Extend the query builder with the needed functions.
-     */
     public function extend(Builder $builder): void
     {
         foreach ($this->extensions as $extension) {
@@ -57,17 +43,11 @@ class ApprovalStateScope implements Scope
         }
     }
 
-    /**
-     * Return all query results with no state.
-     */
     private function addWithAnyState(Builder $builder): void
     {
         $builder->macro('withAnyState', fn (Builder $builder): Builder => $builder->withoutGlobalScope(scope: $this));
     }
 
-    /**
-     * Return only Approval states that are set to 'approved'.
-     */
     private function addApproved(Builder $builder): void
     {
         $builder->macro('approved', fn (Builder $builder): Builder => $builder
@@ -75,19 +55,14 @@ class ApprovalStateScope implements Scope
             ->where(column: 'state', operator: ApprovalStatus::Approved));
     }
 
-    /**
-     * Return only Approval states that are set to 'pending'.
-     */
     private function addPending(Builder $builder): void
     {
         $builder->macro('pending', fn (Builder $builder): Builder => $builder
             ->withAnyState()
-            ->where(column: 'state', operator: ApprovalStatus::Pending));
+            ->where(column: 'state', operator: ApprovalStatus::Pending)
+            ->whereNull('custom_state'));
     }
 
-    /**
-     * Return only Approval states that are set to 'rejected'.
-     */
     private function addRejected(Builder $builder): void
     {
         $builder->macro('rejected', fn (Builder $builder): Builder => $builder
@@ -95,15 +70,11 @@ class ApprovalStateScope implements Scope
             ->where(column: 'state', operator: ApprovalStatus::Rejected));
     }
 
-    /**
-     * Set state as 'approved'.
-     */
     private function addApprove(Builder $builder): void
     {
         $builder->macro('approve', function (Builder $builder, bool $persist = true): int {
             if ($persist) {
                 $modelClass = $builder->getModel()->approvalable_type;
-
                 $modelId = $builder->getModel()->approvalable_id;
 
                 $morphedModel = Relation::getMorphedModel($modelClass) ?? $modelClass;
@@ -111,6 +82,11 @@ class ApprovalStateScope implements Scope
 
                 if ($modelId) {
                     $model = $model->find($modelId);
+
+                    throw_if(
+                        $model === null,
+                        new RuntimeException("Cannot approve: the related model ({$morphedModel} #{$modelId}) no longer exists.")
+                    );
                 }
 
                 $newData = $builder->getModel()->new_data->toArray();
@@ -120,13 +96,11 @@ class ApprovalStateScope implements Scope
                     $newData[$model->getApprovalForeignKeyName()] = $foreignKey;
                 }
 
-                // make sure we cast all attributes
                 foreach ($newData as $key => $value) {
                     $newData[$key] = $model->callCastAttribute($key, $value);
                 }
 
                 $model->forceFill($newData);
-
                 $model->withoutApproval()->save();
             }
 
@@ -134,49 +108,42 @@ class ApprovalStateScope implements Scope
         });
     }
 
-    /**
-     * A helper method for updating the approvals state.
-     */
     private function updateApprovalState(Builder $builder, ApprovalStatus $state): int
     {
-        match ($state) {
-            ApprovalStatus::Approved => Event::dispatch(new ModelApproved($builder->getModel(), auth()->user())),
-            ApprovalStatus::Pending => Event::dispatch(new ModelSetPending($builder->getModel(), auth()->user())),
-            ApprovalStatus::Rejected => Event::dispatch(new ModelRejected($builder->getModel(), auth()->user())),
-        };
+        $auditedData = [
+            'state' => $state,
+            'audited_by' => auth()->id(),
+        ];
 
-        $auditedData = ['state' => $state];
-
-        if (Schema::hasColumn($builder->getModel()->getTable(), 'audited_by')) {
-            $auditedData['audited_by'] = auth()->id();
-        }
-
-        return (int) $builder
+        $result = (int) $builder
             ->find(id: $builder->getModel()->id)
             ->update($auditedData);
+
+        if ($result > 0) {
+            $user = auth()->user();
+
+            match ($state) {
+                ApprovalStatus::Approved => Event::dispatch(new ModelApproved($builder->getModel(), $user)),
+                ApprovalStatus::Pending => Event::dispatch(new ModelSetPending($builder->getModel(), $user)),
+                ApprovalStatus::Rejected => Event::dispatch(new ModelRejected($builder->getModel(), $user)),
+            };
+        }
+
+        return $result;
     }
 
-    /**
-     * Set state as 'pending' (default).
-     */
     private function addPostpone(Builder $builder): void
     {
         $builder->macro('postpone',
             fn (Builder $builder): int => $this->updateApprovalState($builder, state: ApprovalStatus::Pending));
     }
 
-    /**
-     * Set the state as 'rejected'
-     */
     private function addReject(Builder $builder): void
     {
         $builder->macro('reject',
             fn (Builder $builder): int => $this->updateApprovalState($builder, state: ApprovalStatus::Rejected));
     }
 
-    /**
-     * Return only Approval models that have expired.
-     */
     private function addExpired(Builder $builder): void
     {
         $builder->macro(
@@ -188,9 +155,6 @@ class ApprovalStateScope implements Scope
         );
     }
 
-    /**
-     * Return only Approval models that have not expired.
-     */
     private function addNotExpired(Builder $builder): void
     {
         $builder->macro(
@@ -204,9 +168,6 @@ class ApprovalStateScope implements Scope
         );
     }
 
-    /**
-     * Return only Approval models that have an expiration set.
-     */
     private function addHasExpiration(Builder $builder): void
     {
         $builder->macro(
@@ -217,21 +178,16 @@ class ApprovalStateScope implements Scope
         );
     }
 
-    /**
-     * Query approvals by any state (standard or custom).
-     */
     private function addWhereState(Builder $builder): void
     {
         $builder->macro('whereState', function (Builder $builder, string $state): Builder {
-            // For standard states, query the enum column
-            if (in_array($state, ['pending', 'approved', 'rejected'])) {
+            if (in_array($state, ApprovalStatus::values(), true)) {
                 return $builder
                     ->withAnyState()
                     ->where('state', ApprovalStatus::from($state))
                     ->whereNull('custom_state');
             }
 
-            // For custom states, query the custom_state column
             return $builder
                 ->withAnyState()
                 ->where('custom_state', $state);

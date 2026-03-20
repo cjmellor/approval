@@ -19,7 +19,6 @@ class UpgradeToV2Command extends Command
 
     public function handle(): int
     {
-        // Check if already on v2 schema
         if (Schema::hasColumn('approvals', 'custom_state')) {
             $this->info('✅ Your database is already using the v2 schema.');
 
@@ -36,16 +35,13 @@ class UpgradeToV2Command extends Command
 
         try {
             DB::transaction(function (): void {
-                // 1. Log current approvals count for verification
                 $initialCount = DB::table('approvals')->count();
                 $this->info("Found {$initialCount} existing approval records to migrate");
 
-                // 2. Add custom_state column
                 Schema::table('approvals', function (Blueprint $table): void {
                     $table->string('custom_state')->nullable()->after('state');
                 });
 
-                // 3. Verify data integrity
                 $finalCount = DB::table('approvals')->count();
                 throw_if($finalCount !== $initialCount, new RuntimeException("Data verification failed: before ({$initialCount}) vs after ({$finalCount})"));
 

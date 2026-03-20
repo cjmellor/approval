@@ -17,8 +17,18 @@ return new class() extends Migration
                 $table->timestamp(column: 'actioned_at')->nullable();
                 $table->foreignId(column: 'actioned_by')
                     ->nullable()
-                    ->constrained(table: config(key: 'approval.approval.users_table', default: 'users'));
+                    ->constrained(table: config(key: 'approval.users_table', default: 'users'));
             });
         });
+    }
+
+    public function down(): void
+    {
+        if (Schema::hasColumn('approvals', 'expires_at')) {
+            Schema::table(table: 'approvals', callback: function (Blueprint $table): void {
+                $table->dropConstrainedForeignId('actioned_by');
+                $table->dropColumn(['expires_at', 'expiration_action', 'actioned_at']);
+            });
+        }
     }
 };

@@ -14,4 +14,13 @@ return new class() extends Migration
             $table->string('custom_state')->nullable()->after('state');
         });
     }
+
+    public function down(): void
+    {
+        if (Schema::hasColumn('approvals', 'custom_state')) {
+            Schema::table('approvals', function (Blueprint $table): void {
+                $table->dropColumn('custom_state');
+            });
+        }
+    }
 };

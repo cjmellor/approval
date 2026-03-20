@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Cjmellor\Approval\Models;
 
 use Cjmellor\Approval\Enums\ApprovalStatus;
+use Cjmellor\Approval\Enums\ExpirationAction;
 use Cjmellor\Approval\Events\ApprovalExpired;
-use Cjmellor\Approval\Events\ModelRolledBackEvent;
+use Cjmellor\Approval\Events\ModelRolledBack;
 use Cjmellor\Approval\Scopes\ApprovalStateScope;
 use Closure;
 use DateTimeInterface;
@@ -16,58 +17,73 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Event;
 use InvalidArgumentException;
+use RuntimeException;
+use Throwable;
 
 #[ScopedBy(ApprovalStateScope::class)]
 class Approval extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'approvalable_type',
+        'approvalable_id',
+        'state',
+        'custom_state',
+        'new_data',
+        'original_data',
+        'rolled_back_at',
+        'audited_by',
+        'foreign_key',
+        'creator_type',
+        'creator_id',
+        'expires_at',
+        'expiration_action',
+        'actioned_at',
+        'actioned_by',
+    ];
 
     protected $casts = [
         'new_data' => AsArrayObject::class,
         'original_data' => AsArrayObject::class,
         'state' => ApprovalStatus::class,
+        'expiration_action' => ExpirationAction::class,
         'rolled_back_at' => 'datetime',
         'expires_at' => 'datetime',
         'actioned_at' => 'datetime',
     ];
 
-    /**
-     * Process all expired approvals.
-     */
     public static function processExpired(): int
     {
         $processed = 0;
 
-        // Find expired approvals that haven't been actioned yet
-        $expiredApprovals = self::query()
+        self::query()
+            ->where(column: 'state', operator: ApprovalStatus::Pending)
             ->whereNotNull(columns: 'expires_at')
             ->whereNull(columns: 'actioned_at')
             ->where(column: 'expires_at', operator: '<', value: now())
-            ->get();
+            ->chunkById(100, function ($approvals) use (&$processed): void {
+                foreach ($approvals as $approval) {
+                    try {
+                        Event::dispatch(new ApprovalExpired($approval, auth()->user()));
 
-        foreach ($expiredApprovals as $approval) {
-            // Mark as actioned
-            $approval->actioned_at = now();
-            $approval->save();
+                        match ($approval->expiration_action) {
+                            ExpirationAction::Reject => $approval->reject(),
+                            ExpirationAction::Postpone => $approval->postpone(),
+                            ExpirationAction::Custom, null => null,
+                        };
 
-            // Fire the expired event
-            Event::dispatch(new ApprovalExpired($approval, auth()->user()));
+                        $approval->update([
+                            'actioned_at' => now(),
+                            'actioned_by' => auth()->id(),
+                        ]);
 
-            // Process based on expiration action
-            match ($approval->expiration_action) {
-                'reject' => $approval->reject(),
-                'postpone' => $approval->postpone(),
-                // For custom actions, we just rely on event listeners
-                'custom' => $approval->save(),
-                // No action specified, just mark as actioned
-                default => $approval->save(),
-            };
-
-            $processed++;
-        }
+                        $processed++;
+                    } catch (Throwable $e) {
+                        report($e);
+                    }
+                }
+            });
 
         return $processed;
     }
@@ -140,6 +156,13 @@ class Approval extends Model
         }
     }
 
+    /**
+     * @param  Closure|null  $condition  Optional gate; rollback is skipped if this returns false.
+     * @param  bool  $bypass  If true, the approval retains its Approved state after rollback.
+     *
+     * @throws Exception If the approval has not been approved.
+     * @throws RuntimeException If the related model no longer exists.
+     */
     public function rollback(?Closure $condition = null, bool $bypass = true): void
     {
         if ($condition && ! $condition($this)) {
@@ -152,6 +175,14 @@ class Approval extends Model
             message: 'Cannot rollback an Approval that has not been approved.'
         );
 
+        throw_if(
+            condition: $this->approvalable === null,
+            exception: new RuntimeException(
+                "Cannot rollback Approval #{$this->id}: the related model "
+                ."({$this->approvalable_type} #{$this->approvalable_id}) no longer exists."
+            )
+        );
+
         $this->approvalable->withoutApproval()->update($this->original_data->getArrayCopy());
 
         $this->update([
@@ -161,18 +192,18 @@ class Approval extends Model
             'rolled_back_at' => now(),
         ]);
 
-        Event::dispatch(new ModelRolledBackEvent(approval: $this, user: auth()->user()));
+        Event::dispatch(new ModelRolledBack(approval: $this, user: auth()->user()));
     }
 
     /**
-     * Set the expiration time for this approval.
+     * @throws InvalidArgumentException
      */
     public function expiresIn(
         ?int $minutes = null,
         ?int $hours = null,
         ?int $days = null,
         ?DateTimeInterface $datetime = null
-    ): self {
+    ): static {
         $this->expires_at = match (true) {
             $datetime instanceof DateTimeInterface => $datetime,
             $days !== null => now()->addDays($days),
@@ -186,72 +217,40 @@ class Approval extends Model
         return $this;
     }
 
-    /**
-     * Check if the approval has expired.
-     */
     public function isExpired(): bool
     {
-        if ($this->expires_at === null) {
-            return false;
-        }
+        return $this->expires_at?->isPast() ?? false;
+    }
 
-        return $this->expires_at->isPast();
+    public function thenReject(): static
+    {
+        return $this->setExpirationAction(ExpirationAction::Reject);
+    }
+
+    public function thenPostpone(): static
+    {
+        return $this->setExpirationAction(ExpirationAction::Postpone);
+    }
+
+    public function thenCustom(): static
+    {
+        return $this->setExpirationAction(ExpirationAction::Custom);
     }
 
     /**
-     * Set the approval to be automatically rejected when it expires.
+     * @throws InvalidArgumentException
      */
-    public function thenReject(): self
+    public function setState(string $state): static
     {
-        $this->expiration_action = 'reject';
-        $this->save();
-
-        return $this;
-    }
-
-    /**
-     * Set the approval to be automatically postponed when it expires.
-     */
-    public function thenPostpone(): self
-    {
-        $this->expiration_action = 'postpone';
-        $this->save();
-
-        return $this;
-    }
-
-    /**
-     * Set a custom action to be executed when the approval expires.
-     *
-     * Note: Since we can't store callbacks in the database, this will set the action
-     * to 'custom' and applications should listen for the ApprovalExpired event to
-     * handle custom actions.
-     */
-    public function thenDo(callable $callback): self
-    {
-        $this->expiration_action = 'custom';
-        $this->save();
-
-        return $this;
-    }
-
-    /**
-     * Set the state of the approval.
-     */
-    public function setState(string $state): self
-    {
-        // Get states from config
         $states = config('approval.states');
 
         throw_if(! $states || ! array_key_exists($state, $states), new InvalidArgumentException("State '{$state}' is not defined in the approval configuration."));
 
-        // For standard states, use the enum
-        if (in_array($state, ['pending', 'approved', 'rejected'])) {
+        if (in_array($state, ApprovalStatus::values(), true)) {
             $this->state = ApprovalStatus::from($state);
-            $this->attributes['custom_state'] = null; // Clear any custom state
+            $this->attributes['custom_state'] = null;
         } else {
-            // For custom states, set a valid base state and the custom state
-            $this->state = ApprovalStatus::Pending; // Default enum value
+            $this->state = ApprovalStatus::Pending;
             $this->attributes['custom_state'] = $state;
         }
 
@@ -260,16 +259,22 @@ class Approval extends Model
         return $this;
     }
 
-    /**
-     * Get the current state of the approval.
-     */
     public function getState(): string
     {
-        if (Arr::exists(array: $this->attributes, key: 'custom_state')) {
-            return $this->attributes['custom_state'];
+        $customState = $this->attributes['custom_state'] ?? null;
+
+        if (! empty($customState)) {
+            return $customState;
         }
 
-        // Otherwise, return the standard state
         return $this->state->value;
+    }
+
+    private function setExpirationAction(ExpirationAction $action): static
+    {
+        $this->expiration_action = $action;
+        $this->save();
+
+        return $this;
     }
 }

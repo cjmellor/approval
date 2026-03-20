@@ -12,7 +12,7 @@ return new class() extends Migration
     {
         Schema::create(table: 'approvals', callback: function (Blueprint $table): void {
             $table->id();
-            $table->nullableMorphs(config(key: 'approval.approval.approval_pivot'));
+            $table->nullableMorphs(config(key: 'approval.approval_pivot'));
             $table->enum('state', ['pending', 'approved', 'rejected'])->default('pending');
             $table->json('new_data')->nullable();
             $table->json('original_data')->nullable();
