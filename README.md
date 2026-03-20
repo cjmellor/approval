@@ -2,7 +2,7 @@
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/cjmellor/approval/run-pest.yml?branch=main&label=tests&style=for-the-badge&color=rgb%28134%20239%20128%29)](https://github.com/cjmellor/approval/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/cjmellor/approval.svg?color=rgb%28249%20115%2022%29&style=for-the-badge)](https://packagist.org/packages/cjmellor/approval)
 ![Packagist PHP Version](https://img.shields.io/packagist/dependency-v/cjmellor/approval/php?color=rgb%28165%20180%20252%29&logo=php&logoColor=rgb%28165%20180%20252%29&style=for-the-badge)
-![Laravel Version](<https://img.shields.io/badge/laravel-^11-rgb(235%2068%2050)?style=for-the-badge&logo=laravel>)
+![Laravel Version](<https://img.shields.io/badge/laravel-^11_|_^12_|_^13-rgb(235%2068%2050)?style=for-the-badge&logo=laravel>)
 
 Approval is a Laravel package that provides a simple way to approve new Model data before it is persisted.
 
@@ -37,18 +37,15 @@ This is the contents of the published config file:
 
 ```php
 return [
-    'approval' => [
-        /**
-         * The approval polymorphic pivot name
-         *
-         * Default: 'approvalable'
-         */
-        'approval_pivot' => 'approvalable',
+    'approval_pivot' => 'approvalable',
+    'users_table' => 'users',
+    'states' => [
+        'approved' => ['name' => 'Approved'],
+        'pending' => ['name' => 'Pending', 'default' => true],
+        'rejected' => ['name' => 'Rejected'],
     ],
 ];
 ```
-
-The config allows you to change the polymorphic pivot name. It should end with `able` though.
 
 ## Usage
 
@@ -88,13 +85,23 @@ Here is some info about the columns in the `approvals` table:
 
 `rolled_back_at` => A timestamp of when this was last rolled back to its original state
 
-`audited_at` => The ID of the User who set the state
+`audited_by` => The ID of the User who set the state
 
 `foreign_key` => A foreign key to the Model that the approval is for
 
 `creator_id` => The ID of the model who requested the approval
 
 `creator_type` => The class name of the model who requested the approval
+
+`custom_state` => A custom state name (when using configurable states beyond the defaults)
+
+`expires_at` => When this approval expires
+
+`expiration_action` => What action to take on expiry (`reject`, `postpone`, or `custom`)
+
+`actioned_at` => When an expired approval was processed
+
+`actioned_by` => The ID of the User (or null for system) who processed the expiry
 
 ### Bypassing Approval Check
 
@@ -148,7 +155,7 @@ There are three methods to help you retrieve the state of the Approval.
 ```php
 <?php
 
-use App\Models\Approval;
+use Cjmellor\Approval\Models\Approval;
 
 Approval::approved()->get();
 Approval::rejected()->get();
@@ -160,7 +167,7 @@ You can also set a state for an approval:
 ```php
 <?php
 
-use App\Models\Approval;
+use Cjmellor\Approval\Models\Approval;
 
 Approval::where('id', 1)->approve();
 Approval::where('id', 2)->reject();
@@ -209,10 +216,10 @@ if ($approval->wasRequestedBy($user)) {
 Once a Model's state has been changed, an event will be fired.
 
 ```php
-- ModelApproved::class
-- ModelPostponed::class
-- ModelRejected::class
 - ApprovalCreated::class
+- ModelApproved::class
+- ModelSetPending::class
+- ModelRejected::class
 ```
 
 ### Configurable Approval States
@@ -302,10 +309,10 @@ Approval::first()->rollback(fn () => true);
 When a Model has been rolled back, a `ModelRolledBack` event will be fired with the Approval Model that was rolled back, as well as the User that rolled it back.
 
 ```php
-// ModelRolledBackEvent::class
+// ModelRolledBack::class
 
-public Model $approval,
-public Authenticatable|null $user,
+public Approval $approval,
+public ?Authenticatable $user,
 ```
 
 ## Time-Based Approvals
@@ -341,11 +348,8 @@ Approval::find(1)->expiresIn(hours: 48)->thenReject();
 // Automatically postpone (set to pending) when expired
 Approval::find(1)->expiresIn(hours: 48)->thenPostpone();
 
-// Use a custom action through event listeners
-Approval::find(1)->expiresIn(hours: 48)->thenDo(function($approval) {
-    // This callback is for documentation only
-    // Implement an event listener for ApprovalExpired event
-});
+// Mark for custom handling — listen for the ApprovalExpired event
+Approval::find(1)->expiresIn(hours: 48)->thenCustom();
 ```
 
 ### Processing Expired Approvals
@@ -353,11 +357,8 @@ Approval::find(1)->expiresIn(hours: 48)->thenDo(function($approval) {
 To process expired approvals, add this command to your scheduler:
 
 ```php
-// In App\Console\Kernel.php
-protected function schedule(Schedule $schedule)
-{
-    $schedule->command('approval:process-expired')->everyMinute();
-}
+// In routes/console.php (Laravel 11+) or App\Console\Kernel.php
+Schedule::command('approval:process-expired')->everyMinute();
 ```
 
 ### Querying Expirations

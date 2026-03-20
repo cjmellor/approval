@@ -2,6 +2,41 @@
 
 All notable changes to `approval` will be documented in this file.
 
+## v2.0.0 - 2026-03-20
+
+### Breaking Changes
+
+- **`thenDo()` renamed to `thenCustom()`** — The callback parameter was removed (it was silently discarded). Use an `ApprovalExpired` event listener for custom expiration logic.
+- **`ModelRolledBackEvent` renamed to `ModelRolledBack`** — Consistent naming with all other event classes.
+- **Facade removed** — `Cjmellor\Approval\Facades\Approval` has been removed. Use `Cjmellor\Approval\Models\Approval` directly.
+- **Config keys flattened** — `config('approval.approval.approval_pivot')` is now `config('approval.approval_pivot')`. Re-publish your config file.
+- **Event `$approval` property typed as `Approval`** — Previously typed as `Illuminate\Database\Eloquent\Model`, now typed as `Cjmellor\Approval\Models\Approval`.
+- **`pending()` scope excludes custom states** — If you use configurable states, `Approval::pending()` now only returns genuinely pending approvals (not those with a custom state set). Use `whereState('pending')` for the old behaviour.
+- **Expiration actions use `ExpirationAction` enum** — The `expiration_action` column is now cast to `Cjmellor\Approval\Enums\ExpirationAction`.
+
+### New Features
+
+- **`ExpirationAction` enum** — Type-safe expiration actions (`Reject`, `Postpone`, `Custom`) replacing raw strings.
+- **`ApprovalEvent` base class** — All events now extend a shared abstract class with typed `Approval $approval` and `?Authenticatable $user` properties.
+- **`ApprovalStatus::values()` helper** — Returns all standard state values as an array.
+- **`actioned_by` tracking** — Expired approvals now record who/what processed them.
+
+### Improvements
+
+- **100% test coverage** — 74 tests, 208 assertions covering every line.
+- **Events fire after DB writes** — State change events now dispatch only after the database update succeeds, preventing listeners from acting on uncommitted state.
+- **`processExpired()` resilience** — Uses `chunkById()` for bounded memory, per-approval error handling with `report()`, and filters to pending-only approvals.
+- **Duplicate detection scoped to model** — `approvalModelExists()` now filters by `approvalable_type` and `approvalable_id`, preventing cross-model false positives.
+- **Null guards on `rollback()` and `approve()`** — Clear error messages when the related model has been deleted.
+- **`getState()` null safety** — Fixed a bug where `getState()` returned `null` instead of the standard state value after the v2 migration.
+- **`callCastAttribute` uses `getCasts()`** — Supports both property and method-based cast definitions (Laravel 11+).
+- **`class_uses_recursive()`** — Factory trait now detects `MustBeApproved` on parent classes.
+- **`json_decode` with `JSON_THROW_ON_ERROR`** — Malformed JSON now fails loudly instead of silently becoming null.
+- **Schema introspection removed from boot** — No more per-request `Schema::hasTable()`/`Schema::hasColumn()` queries.
+- **Explicit `$fillable`** — Replaced `$guarded = []` with an explicit list of mass-assignable columns.
+- **Migration `down()` methods** — All newer migrations now include idempotent rollback methods.
+- **Laravel 13 support** — Requires `illuminate/contracts ^11.0|^12.0|^13.0`.
+
 ## v1.6.6 - 2025-02-26
 
 ### What's Changed
