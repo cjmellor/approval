@@ -1,22 +1,44 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cjmellor\Approval;
 
-use Spatie\LaravelPackageTools\Package;
-use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Cjmellor\Approval\Console\Commands\ProcessExpiredApprovalsCommand;
+use Cjmellor\Approval\Console\Commands\UpgradeToV2Command;
+use Illuminate\Support\ServiceProvider;
+use Override;
 
-class ApprovalServiceProvider extends PackageServiceProvider
+class ApprovalServiceProvider extends ServiceProvider
 {
-    public function configurePackage(Package $package): void
+    public function boot(): void
     {
-        $package
-            ->name(name: 'approval')
-            ->hasConfigFile()
-            ->hasMigrations([
-                '2022_02_12_195950_create_approvals_table',
-                '2023_10_09_204810_add_rolled_back_at_column_to_approvals_table',
-                '2023_11_17_002135_add_audited_by_column_to_approvals_table',
-                '2024_03_16_173148_add_foreign_id_column_to_approvals_table',
+        $this->publishes(
+            paths: [__DIR__.'/../config/approval.php' => config_path(path: 'approval.php')],
+            groups: 'approval-config'
+        );
+
+        $this->publishes(
+            paths: [__DIR__.'/../database/migrations/' => database_path(path: 'migrations')],
+            groups: 'approval-migrations'
+        );
+
+        $this->loadMigrationsFrom(paths: __DIR__.'/../database/migrations');
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                ProcessExpiredApprovalsCommand::class,
+                UpgradeToV2Command::class,
             ]);
+        }
+    }
+
+    #[Override]
+    public function register(): void
+    {
+        $this->mergeConfigFrom(
+            path: __DIR__.'/../config/approval.php',
+            key: 'approval'
+        );
     }
 }

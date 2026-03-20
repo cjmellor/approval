@@ -2,7 +2,7 @@
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/cjmellor/approval/run-pest.yml?branch=main&label=tests&style=for-the-badge&color=rgb%28134%20239%20128%29)](https://github.com/cjmellor/approval/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/cjmellor/approval.svg?color=rgb%28249%20115%2022%29&style=for-the-badge)](https://packagist.org/packages/cjmellor/approval)
 ![Packagist PHP Version](https://img.shields.io/packagist/dependency-v/cjmellor/approval/php?color=rgb%28165%20180%20252%29&logo=php&logoColor=rgb%28165%20180%20252%29&style=for-the-badge)
-![Laravel Version](https://img.shields.io/badge/laravel-^10-rgb(235%2068%2050)?style=for-the-badge&logo=laravel)
+![Laravel Version](<https://img.shields.io/badge/laravel-^11_|_^12_|_^13-rgb(235%2068%2050)?style=for-the-badge&logo=laravel>)
 
 Approval is a Laravel package that provides a simple way to approve new Model data before it is persisted.
 
@@ -23,6 +23,10 @@ php artisan vendor:publish --tag="approval-migrations"
 php artisan migrate
 ```
 
+## Upgrading from v1
+
+If you're upgrading from v1.x to v2.x, please follow the [detailed upgrade guide](UPGRADE.md) to ensure a smooth transition. Version 2 introduces database schema changes that require running specific commands in the correct order.
+
 You can publish the config file with:
 
 ```bash
@@ -33,25 +37,20 @@ This is the contents of the published config file:
 
 ```php
 return [
-    'approval' => [
-        /**
-         * The approval polymorphic pivot name
-         *
-         * Default: 'approvalable'
-         */
-        'approval_pivot' => 'approvalable',
+    'approval_pivot' => 'approvalable',
+    'users_table' => 'users',
+    'states' => [
+        'approved' => ['name' => 'Approved'],
+        'pending' => ['name' => 'Pending', 'default' => true],
+        'rejected' => ['name' => 'Rejected'],
     ],
 ];
 ```
 
-The config allows you to change the polymorphic pivot name. It should end with `able` though.
-
 ## Usage
 
 > [!NOTE]
-> The package utilises Enums, so both PHP >= 8.1 and Laravel 10 must be used.
->
-> **Note** This package does not approve/deny the data for you, it just stores the new/amended data into the database. It is up to you to decide how you implement a function to approve or deny the Model.
+> This package does not approve/deny the data for you, it just stores the new/amended data into the database. It is up to you to decide how you implement a function to approve or deny the Model.
 
 Add the `MustBeApproved` trait to your Model and now the data will be stored in an `approvals` table, ready for you to approve or deny.
 
@@ -86,9 +85,23 @@ Here is some info about the columns in the `approvals` table:
 
 `rolled_back_at` => A timestamp of when this was last rolled back to its original state
 
-`audited_at` => The ID of the User who set the state
+`audited_by` => The ID of the User who set the state
 
 `foreign_key` => A foreign key to the Model that the approval is for
+
+`creator_id` => The ID of the model who requested the approval
+
+`creator_type` => The class name of the model who requested the approval
+
+`custom_state` => A custom state name (when using configurable states beyond the defaults)
+
+`expires_at` => When this approval expires
+
+`expiration_action` => What action to take on expiry (`reject`, `postpone`, or `custom`)
+
+`actioned_at` => When an expired approval was processed
+
+`actioned_by` => The ID of the User (or null for system) who processed the expiry
 
 ### Bypassing Approval Check
 
@@ -142,7 +155,7 @@ There are three methods to help you retrieve the state of the Approval.
 ```php
 <?php
 
-use App\Models\Approval;
+use Cjmellor\Approval\Models\Approval;
 
 Approval::approved()->get();
 Approval::rejected()->get();
@@ -154,7 +167,7 @@ You can also set a state for an approval:
 ```php
 <?php
 
-use App\Models\Approval;
+use Cjmellor\Approval\Models\Approval;
 
 Approval::where('id', 1)->approve();
 Approval::where('id', 2)->reject();
@@ -177,26 +190,92 @@ $approval->rejectUnless(true);
 $approval->postponeUnless(false);
 ```
 
+### Requestor Functionality
+
+The package includes methods to work with the creator/requestor of an approval:
+
+```php
+// Get the requestor (creator) of the approval
+$requestor = $approval->requestor;
+```
+
+```php
+// Filter approvals by requestor
+$userApprovals = Approval::requestedBy($user)->get();
+```
+
+```php
+// Check if an approval was requested by a specific user
+if ($approval->wasRequestedBy($user)) {
+    // Do something
+}
+```
+
 ### Events
 
 Once a Model's state has been changed, an event will be fired.
 
 ```php
-- ModelApproved::class
-- ModelPostponed::class
-- ModelRejected::class
 - ApprovalCreated::class
+- ModelApproved::class
+- ModelSetPending::class
+- ModelRejected::class
 ```
 
-### Persisting data
+### Configurable Approval States
 
-By default, once you approve a Model, it will be inserted into the database.
+The package allows you to define custom approval states beyond the default set (`Pending`, `Approved`, `Rejected`).
 
-If you don't want to persist to the database on approval, set a `false` flag on the  `approve` method.
+#### Configuring Custom States
+
+Define your custom states in the `config/approval.php` file:
 
 ```php
-Approval::find(1)->approve(persist: false);
+'states' => [
+    'pending' => [
+        'name' => 'Pending',
+        'default' => true,
+    ],
+    'approved' => [
+        'name' => 'Approved',
+    ],
+    'rejected' => [
+        'name' => 'Rejected',
+    ],
+    'in_review' => [
+        'name' => 'In Review',
+    ],
+    'needs_info' => [
+        'name' => 'Needs Clarification',
+    ],
+],
 ```
+
+#### Using Custom States
+
+You can set any configured state on an approval:
+
+```php
+// Set a custom state
+$approval->setState('in_review');
+
+// Check the current state
+$currentState = $approval->getState();
+```
+
+#### Querying by State
+
+The package provides a flexible way to query approvals by any state:
+
+```php
+// Query approvals with a specific state
+$inReviewApprovals = Approval::whereState('in_review')->get();
+
+// The standard scopes still work for the default states
+$pendingApprovals = Approval::pending()->get();
+```
+
+Standard states (`pending`, `approved`, `rejected`) continue to work with all existing methods, ensuring backward compatibility.
 
 ## Rollbacks
 
@@ -230,11 +309,82 @@ Approval::first()->rollback(fn () => true);
 When a Model has been rolled back, a `ModelRolledBack` event will be fired with the Approval Model that was rolled back, as well as the User that rolled it back.
 
 ```php
-// ModelRolledBackEvent::class
+// ModelRolledBack::class
 
-public Model $approval,
-public Authenticatable|null $user,
-````
+public Approval $approval,
+public ?Authenticatable $user,
+```
+
+## Time-Based Approvals
+
+The package supports automatic actions for approvals that aren't completed within a set time frame.
+
+### Setting Expiration Times
+
+You can set an expiration time on any approval:
+
+```php
+// Set expiration in hours (most common)
+Approval::find(1)->expiresIn(hours: 24);
+
+// Set expiration in minutes
+Approval::find(1)->expiresIn(minutes: 30);
+
+// Set expiration in days
+Approval::find(1)->expiresIn(days: 7);
+
+// Set specific expiration datetime
+Approval::find(1)->expiresIn(datetime: now()->addWeek());
+```
+
+### Automatic Actions
+
+You can define what happens when an approval expires:
+
+```php
+// Automatically reject when expired
+Approval::find(1)->expiresIn(hours: 48)->thenReject();
+
+// Automatically postpone (set to pending) when expired
+Approval::find(1)->expiresIn(hours: 48)->thenPostpone();
+
+// Mark for custom handling — listen for the ApprovalExpired event
+Approval::find(1)->expiresIn(hours: 48)->thenCustom();
+```
+
+### Processing Expired Approvals
+
+To process expired approvals, add this command to your scheduler:
+
+```php
+// In routes/console.php (Laravel 11+) or App\Console\Kernel.php
+Schedule::command('approval:process-expired')->everyMinute();
+```
+
+### Querying Expirations
+
+You can query approvals based on their expiration status:
+
+```php
+// Get all expired approvals
+Approval::expired()->get();
+
+// Get all non-expired approvals (including those with no expiration)
+Approval::notExpired()->get();
+
+// Get all approvals that have an expiration set
+Approval::hasExpiration()->get();
+
+// Check if a specific approval is expired
+$approval->isExpired();
+```
+
+### Events
+
+When an approval expires and is processed, these events are fired:
+
+- `ApprovalExpired`: Fired for all expired approvals
+- Followed by the specific action event (`ModelRejected`, `ModelSetPending`, etc.)
 
 ## Disable Approvals
 
@@ -283,7 +433,7 @@ Please open a PR with as much detail as possible about what you're trying to ach
 
 ## Credits
 
-- [Chris Mellor](https://github.com/cjmellor)
+-   [Chris Mellor](https://github.com/cjmellor)
 
 ## License
 

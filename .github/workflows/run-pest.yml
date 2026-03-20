@@ -1,6 +1,10 @@
 name: "Run Pest"
 
-on: pull_request
+on:
+  pull_request:
+  push:
+    branches:
+      - '2.x'
 
 jobs:
   tests:
@@ -8,14 +12,14 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        php: [ 8.2, 8.3, 8.4 ]
+        php: [ 8.3, 8.4 ]
         stability: [ prefer-lowest, prefer-stable ]
 
     name: "PHP: v${{ matrix.php }} [${{ matrix.stability }}]"
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2

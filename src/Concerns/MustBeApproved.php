@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cjmellor\Approval\Concerns;
 
 use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Events\ApprovalCreated;
 use Cjmellor\Approval\Models\Approval;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Event;
 
@@ -14,25 +17,60 @@ trait MustBeApproved
 
     public static function bootMustBeApproved(): void
     {
-        static::creating(callback: fn ($model): ?bool => static::insertApprovalRequest($model));
-        static::updating(callback: fn ($model): ?bool => static::insertApprovalRequest($model));
+        static::creating(callback: fn (Model $model): ?bool => static::insertApprovalRequest($model));
+        static::updating(callback: fn (Model $model): ?bool => static::insertApprovalRequest($model));
+    }
+
+    public function getApprovalAttributes(): array
+    {
+        return $this->approvalAttributes ?? [];
+    }
+
+    public function getApprovalForeignKeyName(): string
+    {
+        return 'user_id';
+    }
+
+    public function isApprovalBypassed(): bool
+    {
+        return $this->bypassApproval;
+    }
+
+    public function approvals(): MorphMany
+    {
+        return $this->morphMany(related: Approval::class, name: 'approvalable');
+    }
+
+    public function withoutApproval(): static
+    {
+        $this->bypassApproval = true;
+
+        return $this;
+    }
+
+    public function callCastAttribute(string $key, mixed $value): mixed
+    {
+        if (! array_key_exists($key, $this->getCasts()) || is_array($value)) {
+            return $value;
+        }
+
+        return $this->castAttribute($key, $value);
     }
 
     /**
-     * Create an Approval request before committing to the database.
+     * @return bool|null Returns null to allow the operation to proceed (bypass or no dirty attributes),
      */
-    protected static function insertApprovalRequest($model): ?bool
+    protected static function insertApprovalRequest(Model $model): ?bool
     {
         $filteredDirty = $model->getDirtyAttributes();
         $foreignKey = $model->getApprovalForeignKeyName();
         $foreignKeyValue = $filteredDirty[$foreignKey] ?? null;
 
-        // Remove the foreign key from the dirty attributes
         unset($filteredDirty[$foreignKey]);
 
         foreach ($filteredDirty as $key => $value) {
-            if (isset($model->casts[$key]) && ($model->casts[$key] === 'json' || $model->casts[$key] === 'array')) {
-                $filteredDirty[$key] = json_decode(json: $value, associative: true);
+            if ($model->hasCast($key, ['json', 'array']) && is_string($value)) {
+                $filteredDirty[$key] = json_decode(json: $value, associative: true, flags: JSON_THROW_ON_ERROR);
             }
         }
 
@@ -41,6 +79,7 @@ trait MustBeApproved
         }
 
         $approvalAttributes = $model->getApprovalAttributes();
+        $noApprovalNeeded = [];
 
         if (! empty($approvalAttributes)) {
             $noApprovalNeeded = collect($model->getDirty())
@@ -57,24 +96,38 @@ trait MustBeApproved
             return false;
         }
 
+        $user = auth()->user();
+
         $approval = $model->approvals()->create([
             'new_data' => $filteredDirty,
             'original_data' => $model->getOriginalMatchingChanges(),
+            'creator_id' => $user?->getAuthIdentifier(),
+            'creator_type' => $user ? $user::class : null,
             'foreign_key' => $foreignKeyValue,
         ]);
 
-        Event::dispatch(new ApprovalCreated($approval, auth()->user())); // Dispatch the event
+        Event::dispatch(new ApprovalCreated($approval, $user));
 
-        if (empty($noApprovalNeeded)) {
-            return false;
-        }
-
-        return true;
+        return ! empty($noApprovalNeeded);
     }
 
-    /**
-     * Get the dirty attributes, but only those which should be included
-     */
+    protected static function approvalModelExists(Model $model): bool
+    {
+        $query = Approval::where('approvalable_type', $model->getMorphClass());
+
+        if ($model->getKey() !== null) {
+            $query->where('approvalable_id', $model->getKey());
+        } else {
+            $query->whereNull('approvalable_id');
+        }
+
+        return $query->where([
+            ['state', '=', ApprovalStatus::Pending],
+            ['new_data', '=', json_encode($model->getDirtyAttributes(), JSON_THROW_ON_ERROR)],
+            ['original_data', '=', json_encode($model->getOriginalMatchingChanges(), JSON_THROW_ON_ERROR)],
+        ])->exists();
+    }
+
     protected function getDirtyAttributes(): array
     {
         if (empty($this->getApprovalAttributes())) {
@@ -86,82 +139,10 @@ trait MustBeApproved
             ->toArray();
     }
 
-    public function getApprovalAttributes(): array
-    {
-        return $this->approvalAttributes ?? [];
-    }
-
-    /**
-     * Get the name of the foreign key for the model.
-     */
-    public function getApprovalForeignKeyName(): string
-    {
-        return 'user_id';
-    }
-
-    /**
-     * Check is the approval can be bypassed.
-     */
-    public function isApprovalBypassed(): bool
-    {
-        return $this->bypassApproval;
-    }
-
-    /**
-     * Check if the Approval model been created already exists with a 'pending' state
-     */
-    protected static function approvalModelExists($model): bool
-    {
-        return Approval::where([
-            ['state', '=', ApprovalStatus::Pending],
-            ['new_data', '=', json_encode($model->getDirtyAttributes())],
-            ['original_data', '=', json_encode($model->getOriginalMatchingChanges())],
-        ])->exists();
-    }
-
-    /**
-     * Gets the original model data and only gets the keys that match the dirty attributes.
-     */
     protected function getOriginalMatchingChanges(): array
     {
         return collect($this->getOriginal())
             ->only(collect($this->getDirtyAttributes())->keys())
             ->toArray();
-    }
-
-    /**
-     * The polymorphic relationship for the Approval model.
-     */
-    public function approvals(): MorphMany
-    {
-        return $this->morphMany(related: Approval::class, name: 'approvalable');
-    }
-
-    /**
-     * Approval is ignored and persisted to the database.
-     */
-    public function withoutApproval(): static
-    {
-        $this->bypassApproval = true;
-
-        return $this;
-    }
-
-    /**
-     * Wrapper to access the castAttribute function
-     */
-    public function callCastAttribute($key, $value): mixed
-    {
-        if (array_key_exists($key, $this->casts)) {
-            // If the value is already an array, return it as is
-            if (is_array($value)) {
-                return $value;
-            }
-
-            // Otherwise, cast the attribute to its defined type
-            return $this->castAttribute($key, $value);
-        }
-
-        return $value;
     }
 }

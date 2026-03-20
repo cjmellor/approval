@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 use Cjmellor\Approval\Tests\Models\FakeModel;
 
-test(description: 'a model is added via a factory when the "withoutApproval()" method is used ', closure: function () {
+test(description: 'a model is added via a factory when the "withoutApproval()" method is used ', closure: function (): void {
     FakeModel::factory()->withoutApproval()->create();
 
-    $this->assertDatabaseHas('fake_models', [
+    $this->assertDatabaseHas(table: FakeModel::class, data: [
         'name' => 'Bob',
         'meta' => 'green',
     ]);
@@ -17,12 +19,12 @@ test(description: 'a model is added via a factory when the "withoutApproval()" m
     ]);
 });
 
-test(description: 'many models are added via a factory when the "withoutApproval()" method is used ', closure: function () {
+test(description: 'many models are added via a factory when the "withoutApproval()" method is used ', closure: function (): void {
     FakeModel::factory()->withoutApproval()->count(4)->create();
 
     $this->assertCount(4, FakeModel::all());
 
-    FakeModel::all()->each(function ($model) {
+    FakeModel::all()->each(function ($model): void {
         $this->assertEquals('Bob', $model->name);
         $this->assertEquals('green', $model->meta);
     });

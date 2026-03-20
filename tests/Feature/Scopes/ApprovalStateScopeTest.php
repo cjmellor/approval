@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Cjmellor\Approval\Enums\ApprovalStatus;
 use Cjmellor\Approval\Events\ModelApproved;
 use Cjmellor\Approval\Events\ModelRejected;
@@ -23,7 +25,6 @@ test('Check if an Approval Model is approved', closure: function (): void {
     expect($approval)->state->toBe(ApprovalStatus::Approved);
 });
 
-// same but for pending and rejected
 test('Check if an Approval Model is pending', closure: function (): void {
     $this->approvalData = [
         'approvalable_type' => 'App\Models\FakeModel',
@@ -60,7 +61,7 @@ test(description: 'A Model can be Approved', closure: function (): void {
 
     expect($approval)->fresh()->state->toBe(ApprovalStatus::Approved);
 
-    $this->assertDatabaseHas(table: 'fake_models', data: $this->fakeModelData);
+    $this->assertDatabaseHas(table: FakeModel::class, data: $this->fakeModelData);
 });
 
 test(description: 'A Model can be Rejected', closure: function (): void {
@@ -85,7 +86,7 @@ test(description: 'A Model can be Postponed', closure: function (): void {
     $this->assertDatabaseMissing(table: 'fake_models', data: $this->fakeModelData);
 });
 
-it(description: 'only changes the status of the requested model', closure: function () {
+it(description: 'only changes the status of the requested model', closure: function (): void {
     FakeModel::create($this->fakeModelData);
     FakeModel::create(['name' => 'Bob', 'meta' => 'green']);
 
@@ -123,7 +124,7 @@ test(description: 'A Model can be Approved if a condition is met', closure: func
 
     Event::assertDispatched(event: ModelApproved::class);
 
-    $this->assertDatabaseHas(table: 'fake_models', data: $this->fakeModelData);
+    $this->assertDatabaseHas(table: FakeModel::class, data: $this->fakeModelData);
 });
 
 test(description: 'A Model can be Approved unless a condition is met', closure: function (): void {
@@ -138,7 +139,7 @@ test(description: 'A Model can be Approved unless a condition is met', closure: 
 
     Event::assertDispatched(event: ModelApproved::class);
 
-    $this->assertDatabaseHas(table: 'fake_models', data: $this->fakeModelData);
+    $this->assertDatabaseHas(table: FakeModel::class, data: $this->fakeModelData);
 });
 
 test(description: 'A Model can be Rejected if a condition is met', closure: function (): void {
@@ -201,7 +202,7 @@ test(description: 'A Model can be Postponed unless a condition is met', closure:
     $this->assertDatabaseMissing(table: 'fake_models', data: $this->fakeModelData);
 });
 
-test(description: 'The model approver is listed correctly', closure: function () {
+test(description: 'The model approver is listed correctly', closure: function (): void {
     $user = FakeUser::create($this->fakeUserData);
 
     $this->be($user);
@@ -214,14 +215,14 @@ test(description: 'The model approver is listed correctly', closure: function ()
     expect($approval)->fresh()->audited_by->toBe(expected: $user->id);
 });
 
-test(description: 'The model foreign key is set correctly', closure: function () {
+test(description: 'The model foreign key is set correctly', closure: function (): void {
     $user = FakeUser::create($this->fakeUserData);
 
     $this->be($user);
 
     $fakeModelData = [
         ...$this->fakeModelData,
-        'user_id' => $user->id
+        'user_id' => $user->id,
     ];
 
     FakeModel::create($fakeModelData);
@@ -230,9 +231,25 @@ test(description: 'The model foreign key is set correctly', closure: function ()
     $approval->approve();
 
     $this->assertDatabaseHas(
-        'fake_models',
-        [
-            'user_id' => $user->id
+        table: FakeModel::class,
+        data: [
+            'user_id' => $user->id,
         ]
     );
+});
+
+test(description: 'can query expired and non-expired approvals', closure: function (): void {
+    FakeModel::create(['name' => 'Expired Model', 'meta' => 'red']);
+    $expiredApproval = Approval::first();
+    $expiredApproval->expiresIn(datetime: now()->subHour());
+
+    FakeModel::create(['name' => 'Active Model', 'meta' => 'blue']);
+    $activeApproval = Approval::orderByDesc(column: 'id')->first();
+    $activeApproval->expiresIn(datetime: now()->addHour());
+
+    FakeModel::create(['name' => 'No Expiry Model', 'meta' => 'green']);
+
+    expect(Approval::expired()->count())->toBe(expected: 1);
+    expect(Approval::notExpired()->count())->toBe(expected: 2);
+    expect(Approval::hasExpiration()->count())->toBe(expected: 2);
 });

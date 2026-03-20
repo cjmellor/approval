@@ -1,14 +1,17 @@
 <?php
 
-use Cjmellor\Approval\Enums\ApprovalStatus;
-use Cjmellor\Approval\Tests\Models\FakeModel;
-use Cjmellor\Approval\Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+declare(strict_types=1);
 
-uses(TestCase::class, RefreshDatabase::class)
+use Cjmellor\Approval\Enums\ApprovalStatus;
+use Cjmellor\Approval\Tests\TestCase;
+use Cjmellor\Approval\Tests\Traits\WithTestUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Workbench\App\Models\User;
+
+uses(TestCase::class, RefreshDatabase::class, WithTestUser::class)
     ->beforeEach(hook: function (): void {
         $this->approvalData = [
-            'approvalable_type' => FakeModel::class,
+            'approvalable_type' => User::class,
             'approvalable_id' => 1,
             'state' => ApprovalStatus::Pending,
             'new_data' => json_encode(['name' => 'Chris']),
