@@ -22,7 +22,6 @@ return RectorConfig::configure()
     )
     ->withImportNames(removeUnusedImports: true)
     ->withPhpSets(php83: true)
-    // Used with the Laravel rector plugin.
     ->withSets([
         LaravelSetList::LARAVEL_CODE_QUALITY,
         LaravelSetList::LARAVEL_COLLECTION,

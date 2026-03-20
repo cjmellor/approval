@@ -1,5 +1,5 @@
-/.idea
 /.phpunit.cache
-/.trae
-/.vscode
 /vendor
+CLAUDE.md
+AGENTS.md
+.mcp.json
