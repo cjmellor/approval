@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Archon — Interactive Codebase Map</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+      :root {
+        --bg: #0b0d10;
+        --panel: #11151a;
+        --panel-2: #161b22;
+        --border: #232b35;
+        --text: #e6edf3;
+        --muted: #8b96a3;
+        --accent: #7aa2f7;
+        --green: #9ece6a;
+        --orange: #ff9e64;
+        --pink: #f7768e;
+        --purple: #bb9af7;
+        --yellow: #e0af68;
+        --cyan: #7dcfff;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; background: linear-gradient(180deg, #0e1217 0%, #0b0d10 100%); }
+      header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+      header .tag { font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); }
+      header .spacer { flex: 1; }
+      header a { color: var(--accent); text-decoration: none; font-size: 13px; }
+      header a:hover { text-decoration: underline; }
+
+      nav.tabs { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--border); background: #0d1116; }
+      nav.tabs button {
+        background: transparent; color: var(--muted); border: none; padding: 12px 14px;
+        cursor: pointer; font-size: 13px; border-bottom: 2px solid transparent; font-weight: 500;
+      }
+      nav.tabs button:hover { color: var(--text); }
+      nav.tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+
+      main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+      .view { display: none; }
+      .view.active { display: block; }
+
+      .grid { display: grid; gap: 16px; }
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+      .grid-3 { grid-template-columns: repeat(3, 1fr); }
+      .grid-4 { grid-template-columns: repeat(4, 1fr); }
+      @media (max-width: 900px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+      .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+      .card h3 { margin: 0 0 8px 0; font-size: 14px; font-weight: 600; }
+      .card .stat { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+      .card .label { color: var(--muted); font-size: 12px; }
+
+      .pkg-card { transition: border-color .15s, transform .15s; cursor: pointer; }
+      .pkg-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+      .pkg-card .name { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--accent); font-size: 13px; }
+      .pkg-card .desc { color: var(--muted); font-size: 12px; margin-top: 6px; }
+      .pkg-card .meta { display: flex; gap: 12px; margin-top: 10px; font-size: 11px; color: var(--muted); }
+      .pkg-card .meta span { display: inline-flex; align-items: center; gap: 4px; }
+
+      .badge { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 4px; background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); margin-right: 4px; }
+      .badge.green { color: var(--green); border-color: rgba(158,206,106,.3); }
+      .badge.orange { color: var(--orange); border-color: rgba(255,158,100,.3); }
+      .badge.pink { color: var(--pink); border-color: rgba(247,118,142,.3); }
+      .badge.purple { color: var(--purple); border-color: rgba(187,154,247,.3); }
+      .badge.cyan { color: var(--cyan); border-color: rgba(125,207,255,.3); }
+
+      svg.graph { width: 100%; height: 640px; background: #0a0d11; border: 1px solid var(--border); border-radius: 10px; }
+      .node rect, .node circle { stroke-width: 1.5; cursor: pointer; }
+      .node text { fill: var(--text); font: 600 12px ui-monospace, monospace; pointer-events: none; }
+      .node:hover rect, .node:hover circle { stroke-width: 2.5; }
+      .link { fill: none; stroke: #2a3440; stroke-width: 1.4; opacity: .7; }
+      .link.highlight { stroke: var(--accent); stroke-width: 2; opacity: 1; }
+
+      .yaml { background: #0a0d11; border: 1px solid var(--border); border-radius: 8px; padding: 14px; font: 12.5px/1.6 ui-monospace, monospace; overflow-x: auto; white-space: pre; color: #c9d1d9; }
+      .k { color: var(--cyan); } .s { color: var(--green); } .c { color: var(--muted); font-style: italic; } .n { color: var(--orange); }
+
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      table th, table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+      table th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+      table tr:hover td { background: var(--panel-2); }
+      table td.method { font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; }
+      table td.method.GET { color: var(--green); }
+      table td.method.POST { color: var(--accent); }
+      table td.method.PUT { color: var(--orange); }
+      table td.method.PATCH { color: var(--purple); }
+      table td.method.DELETE { color: var(--pink); }
+      table td.path { font-family: ui-monospace, monospace; font-size: 12px; }
+
+      .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+      .filter-bar input { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font: inherit; flex: 1; min-width: 200px; }
+      .filter-bar button { background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 12px; }
+      .filter-bar button.active { color: var(--text); border-color: var(--accent); }
+
+      .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0 12px; font-size: 12px; color: var(--muted); }
+      .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+
+      .workflow-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+      .workflow-list .wf {
+        background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+        font-family: ui-monospace, monospace; font-size: 12px;
+      }
+      .workflow-list .wf .name { color: var(--purple); font-weight: 600; }
+      .workflow-list .wf .verb { color: var(--muted); font-family: -apple-system, sans-serif; font-size: 11px; margin-top: 4px; }
+
+      .schema-tree ul { list-style: none; padding-left: 16px; margin: 4px 0; }
+      .schema-tree li { font-family: ui-monospace, monospace; font-size: 12.5px; padding: 2px 0; }
+      .schema-tree .key { color: var(--cyan); }
+      .schema-tree .type { color: var(--orange); }
+      .schema-tree .req { color: var(--pink); margin-left: 4px; }
+
+      .tooltip {
+        position: absolute; background: #1a1f26; color: var(--text); border: 1px solid var(--border);
+        padding: 8px 10px; border-radius: 6px; font-size: 12px; pointer-events: none; opacity: 0;
+        transition: opacity .15s; z-index: 100; max-width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,.5);
+      }
+      .tooltip strong { color: var(--accent); }
+      .tooltip .small { color: var(--muted); font-size: 11px; }
+
+      details { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+      details > summary { cursor: pointer; font-weight: 600; }
+      details[open] > summary { margin-bottom: 8px; }
+
+      .hero { background: linear-gradient(135deg, rgba(122,162,247,.08), rgba(187,154,247,.08)); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+      .hero p { color: var(--muted); margin: 6px 0 0; max-width: 800px; line-height: 1.6; }
+
+      kbd { background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 11px; font-family: ui-monospace, monospace; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Archon</h1>
+      <span class="tag">v0.3.10</span>
+      <span class="tag">monorepo</span>
+      <span class="tag">Bun + TypeScript</span>
+      <div class="spacer"></div>
+      <a href="https://github.com/coleam00/Archon" target="_blank">github.com/coleam00/Archon ↗</a>
+    </header>
+
+    <nav class="tabs">
+      <button data-tab="overview" class="active">Overview</button>
+      <button data-tab="packages">Packages</button>
+      <button data-tab="graph">Dependency graph</button>
+      <button data-tab="workflows">Workflows</button>
+      <button data-tab="schema">Workflow schema</button>
+      <button data-tab="api">HTTP API</button>
+      <button data-tab="db">Database</button>
+      <button data-tab="flow">Execution flow</button>
+    </nav>
+
+    <main>
+      <!-- ─────────────────────────────  OVERVIEW  ───────────────────────────── -->
+      <section class="view active" id="overview">
+        <div class="hero">
+          <h2 style="margin:0;font-size:22px;">A workflow engine for AI coding agents</h2>
+          <p>
+            Archon turns the squishy "ask the AI to fix this bug" loop into a deterministic, repeatable
+            pipeline. You describe development processes — plan, implement, validate, review, PR — as
+            YAML workflows. A DAG executor runs them, each in an isolated git worktree, calling out to
+            AI providers (Claude Agent SDK, Codex) at the steps where AI actually adds value.
+          </p>
+          <p>
+            Think Dockerfiles for infra or GitHub Actions for CI — but for AI coding. Same workflow,
+            same sequence, every time. Composable deterministic nodes (bash, git, tests) sit alongside
+            AI nodes (planning, code-gen, review) and human approval gates.
+          </p>
+        </div>
+
+        <div class="grid grid-4">
+          <div class="card"><div class="label">Packages</div><div class="stat">11</div></div>
+          <div class="card"><div class="label">TypeScript files</div><div class="stat">404</div></div>
+          <div class="card"><div class="label">Lines of code</div><div class="stat">~127k</div></div>
+          <div class="card"><div class="label">Test files</div><div class="stat">128</div></div>
+          <div class="card"><div class="label">DB migrations</div><div class="stat">22</div></div>
+          <div class="card"><div class="label">HTTP endpoints</div><div class="stat">37</div></div>
+          <div class="card"><div class="label">Bundled workflows</div><div class="stat">20</div></div>
+          <div class="card"><div class="label">DAG node types</div><div class="stat">6</div></div>
+        </div>
+
+        <h3 style="margin-top:32px;">Big-picture architecture</h3>
+        <div class="card">
+          <svg class="graph" id="arch-svg" viewBox="0 0 1100 460"></svg>
+        </div>
+
+        <h3 style="margin-top:32px;">What you get out of the box</h3>
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>📐 Deterministic structure</h3>
+            <p style="color:var(--muted);margin:0;">Workflow YAML defines phases, gates and artifacts. The AI fills in the intelligence at each step, but the structure is owned by you and checked into git.</p>
+          </div>
+          <div class="card">
+            <h3>🌿 Isolated runs</h3>
+            <p style="color:var(--muted);margin:0;">Every workflow run gets its own git worktree (or container — pluggable provider). Run several fixes in parallel without conflicts.</p>
+          </div>
+          <div class="card">
+            <h3>🔁 Loops &amp; approval gates</h3>
+            <p style="color:var(--muted);margin:0;">Loop nodes iterate until a condition is met (<code>ALL_TASKS_COMPLETE</code>, tests pass…). Approval nodes pause execution and wait for a human decision.</p>
+          </div>
+          <div class="card">
+            <h3>🔌 Multi-platform front-ends</h3>
+            <p style="color:var(--muted);margin:0;">Same workflows run from CLI, Web UI (Vite + React), Slack, Telegram or GitHub. Adapters per chat/forge platform feed the same orchestrator.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────────  PACKAGES  ───────────────────────────── -->
+      <section class="view" id="packages">
+        <h2 style="margin-top:0;">11 workspace packages</h2>
+        <p style="color:var(--muted);">Click any card to see what it depends on highlighted in the dependency graph tab.</p>
+        <div class="grid grid-3" id="pkg-grid"></div>
+      </section>
+
+      <!-- ─────────────────────────────  GRAPH  ───────────────────────────── -->
+      <section class="view" id="graph">
+        <h2 style="margin-top:0;">Internal package dependencies</h2>
+        <p style="color:var(--muted);">Drag nodes to reposition. Hover to highlight what depends on what. Drag the background to pan; scroll to zoom.</p>
+        <div class="legend">
+          <span><span class="dot" style="background:#7aa2f7"></span>core / runtime</span>
+          <span><span class="dot" style="background:#bb9af7"></span>app entry (cli/server/web)</span>
+          <span><span class="dot" style="background:#9ece6a"></span>infrastructure</span>
+          <span><span class="dot" style="background:#e0af68"></span>integration adapter</span>
+          <span><span class="dot" style="background:#7dcfff"></span>docs</span>
+        </div>
+        <div class="card" style="padding:0;">
+          <svg class="graph" id="dep-svg" viewBox="0 0 1100 640" style="height:640px"></svg>
+        </div>
+        <div class="tooltip" id="tip"></div>
+      </section>
+
+      <!-- ─────────────────────────────  WORKFLOWS  ───────────────────────────── -->
+      <section class="view" id="workflows">
+        <h2 style="margin-top:0;">20 bundled default workflows</h2>
+        <p style="color:var(--muted);">Located in <code>.archon/workflows/defaults/</code>. The CLI bundles them at build time so the binary ships with usable defaults. Users override or add their own under <code>.archon/workflows/</code> in their project repo.</p>
+        <div class="filter-bar">
+          <input id="wf-filter" placeholder="Filter workflows…" />
+        </div>
+        <div class="workflow-list" id="wf-list"></div>
+
+        <h3 style="margin-top:32px;">Example: archon-idea-to-pr</h3>
+        <div class="yaml" id="example-yaml"></div>
+      </section>
+
+      <!-- ─────────────────────────────  SCHEMA  ───────────────────────────── -->
+      <section class="view" id="schema">
+        <h2 style="margin-top:0;">Workflow node schema (DAG)</h2>
+        <p style="color:var(--muted);">A flat Zod schema with <code>superRefine</code> validates all fields, then a transform produces one of six concrete variants. YAML nodes carry no <code>type</code> discriminant — the variant is inferred from which fields are present.</p>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>Six DAG node variants</h3>
+            <ul style="padding-left:18px;color:var(--muted);">
+              <li><span class="badge cyan">CommandNode</span> runs a slash-command-style prompt</li>
+              <li><span class="badge purple">PromptNode</span> free-form prompt to the AI provider</li>
+              <li><span class="badge green">BashNode</span> deterministic shell — no AI involved</li>
+              <li><span class="badge orange">LoopNode</span> iterates until a condition holds</li>
+              <li><span class="badge pink">ApprovalNode</span> pauses for a human gate</li>
+              <li><span class="badge">CancelNode</span> aborts the run with a reason</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Trigger rules</h3>
+            <p style="color:var(--muted);margin:0 0 8px;">Each node specifies how its <code>depends_on</code> upstreams must complete:</p>
+            <ul style="padding-left:18px;color:var(--muted);">
+              <li><code>all_success</code> — default; every parent must succeed</li>
+              <li><code>one_success</code> — at least one parent succeeded</li>
+              <li><code>none_failed_min_one_success</code> — partial fan-in</li>
+              <li><code>all_done</code> — finalisers; run regardless of outcome</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3 style="margin-top:32px;">Common node fields</h3>
+        <div class="card schema-tree">
+          <ul>
+            <li><span class="key">id</span> <span class="type">string</span><span class="req">required</span> — unique within workflow</li>
+            <li><span class="key">depends_on</span> <span class="type">string[]</span> — node IDs this one waits for</li>
+            <li><span class="key">trigger_rule</span> <span class="type">enum</span> — see above</li>
+            <li><span class="key">prompt</span> <span class="type">string</span> — natural-language instruction (PromptNode)</li>
+            <li><span class="key">command</span> <span class="type">string</span> — slash command (CommandNode)</li>
+            <li><span class="key">bash</span> <span class="type">string</span> — shell command (BashNode)</li>
+            <li><span class="key">loop</span> <span class="type">object</span>
+              <ul>
+                <li><span class="key">prompt</span> <span class="type">string</span></li>
+                <li><span class="key">until</span> <span class="type">string</span> — sentinel produced by the AI</li>
+                <li><span class="key">fresh_context</span> <span class="type">bool</span></li>
+                <li><span class="key">interactive</span> <span class="type">bool</span> — pauses for human input</li>
+                <li><span class="key">max_iterations</span> <span class="type">number</span></li>
+              </ul>
+            </li>
+            <li><span class="key">retry</span> <span class="type">object</span> — exponential backoff config</li>
+            <li><span class="key">hooks</span> <span class="type">object</span> — pre/post-step hooks</li>
+            <li><span class="key">thinking</span> <span class="type">enum|object</span> — Claude SDK thinking config</li>
+            <li><span class="key">model</span> <span class="type">string</span> — override workflow-level model</li>
+            <li><span class="key">provider</span> <span class="type">enum</span> — claude | codex</li>
+            <li><span class="key">sandbox</span> <span class="type">object</span> — permission/tool restrictions</li>
+            <li><span class="key">condition</span> <span class="type">expr</span> — skip-if predicate evaluated by condition-evaluator</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────────  API  ───────────────────────────── -->
+      <section class="view" id="api">
+        <h2 style="margin-top:0;">HTTP API surface (Hono + Zod-OpenAPI)</h2>
+        <p style="color:var(--muted);">Defined in <code>packages/server/src/routes/api.ts</code>. Routes are registered through <code>registerOpenApiRoute</code>, so request/response schemas double as the public OpenAPI spec served at <code>/api/openapi.json</code>.</p>
+        <div class="filter-bar">
+          <input id="api-filter" placeholder="Filter routes…" />
+          <button data-method="ALL" class="active">All</button>
+          <button data-method="GET">GET</button>
+          <button data-method="POST">POST</button>
+          <button data-method="PUT">PUT</button>
+          <button data-method="PATCH">PATCH</button>
+          <button data-method="DELETE">DELETE</button>
+        </div>
+        <table id="api-table">
+          <thead><tr><th style="width:80px">Method</th><th>Path</th><th>Resource</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <!-- ─────────────────────────────  DB  ───────────────────────────── -->
+      <section class="view" id="db">
+        <h2 style="margin-top:0;">Database — 22 SQL migrations</h2>
+        <p style="color:var(--muted);">SQLite (Bun's built-in driver) with hand-written migrations under <code>migrations/</code>. Each migration is numbered and applied at boot via <code>packages/core/src/db/connection.ts</code>. The schema evolved across the project's history — you can read the changelog from the migration sequence below.</p>
+        <ol id="migrations-list" style="margin:0;padding-left:24px;line-height:1.9;"></ol>
+
+        <h3 style="margin-top:32px;">Tables (DAO modules)</h3>
+        <div class="grid grid-3">
+          <div class="card"><h3>codebases</h3><div class="label">Registered project repos. Tracks default cwd, env-var allow-list, isolation policy.</div></div>
+          <div class="card"><h3>conversations</h3><div class="label">Chat threads — one per platform conversation (CLI session, web tab, Slack thread).</div></div>
+          <div class="card"><h3>messages</h3><div class="label">Persisted chat turns plus tool-use payloads. Streamed live via SSE.</div></div>
+          <div class="card"><h3>sessions</h3><div class="label">Immutable AI provider sessions. Migration 010 made them immutable to prevent accidental mutation.</div></div>
+          <div class="card"><h3>workflows</h3><div class="label">Materialised workflow definitions, including last-activity timestamp and resume path.</div></div>
+          <div class="card"><h3>workflow_runs</h3><div class="label">A single execution of a workflow. Carries status, ended-reason, dispatched-in-background flag.</div></div>
+          <div class="card"><h3>workflow_events</h3><div class="label">Append-only event stream per run — drives the UI timeline and post-mortem replay.</div></div>
+          <div class="card"><h3>isolation_environments</h3><div class="label">Worktrees / containers / future isolation backends. Provider-pluggable.</div></div>
+          <div class="card"><h3>codebase_env_vars</h3><div class="label">Per-codebase environment variables exposed to workflows. Allow-listed.</div></div>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────────  FLOW  ───────────────────────────── -->
+      <section class="view" id="flow">
+        <h2 style="margin-top:0;">From "use archon to fix issue #42" to a finished PR</h2>
+        <p style="color:var(--muted);">A high-level trace of what happens after the user invokes Archon. Hover steps for which package owns each.</p>
+        <svg class="graph" id="flow-svg" viewBox="0 0 1100 540" style="height:540px"></svg>
+
+        <h3 style="margin-top:32px;">Where each phase lives</h3>
+        <table>
+          <thead><tr><th>Phase</th><th>Package(s)</th><th>Key files</th></tr></thead>
+          <tbody>
+            <tr><td>Trigger ingest (CLI / web / Slack / Telegram / GitHub)</td><td><code>cli</code>, <code>adapters</code>, <code>server</code></td><td><code>cli/src/commands/*.ts</code>, <code>adapters/src/{chat,forge}</code></td></tr>
+            <tr><td>Workflow discovery + parsing</td><td><code>workflows</code></td><td><code>workflow-discovery.ts</code>, <code>loader.ts</code>, <code>schemas/*.ts</code></td></tr>
+            <tr><td>Codebase + isolation provisioning</td><td><code>core</code>, <code>isolation</code>, <code>git</code></td><td><code>operations/isolation-operations.ts</code>, <code>isolation/src/providers/*</code></td></tr>
+            <tr><td>DAG scheduling + dependency resolution</td><td><code>workflows</code></td><td><code>dag-executor.ts</code>, <code>condition-evaluator.ts</code>, <code>deps.ts</code></td></tr>
+            <tr><td>Per-node execution (AI / bash / loop / approval)</td><td><code>workflows</code>, <code>providers</code></td><td><code>executor.ts</code>, <code>providers/src/{claude,codex}/provider.ts</code></td></tr>
+            <tr><td>Persistence + event stream</td><td><code>core</code></td><td><code>db/workflow-events.ts</code>, <code>db/workflow_runs.ts</code></td></tr>
+            <tr><td>UI + live updates</td><td><code>web</code>, <code>server</code></td><td><code>web/src/routes/WorkflowExecutionPage.tsx</code>, SSE at <code>/api/stream/:id</code></td></tr>
+            <tr><td>PR creation</td><td><code>adapters</code></td><td><code>adapters/src/forge/github</code> (+ community: gitea, gitlab)</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script>
+      // ────────────────────────────  DATA  ────────────────────────────
+      const PACKAGES = [
+        { id: 'core',      role: 'core',  files: 77,  lines: 25294, tests: 32, role_label: 'core / runtime',
+          desc: 'Domain core: orchestrator, DB layer, codebase + isolation operations, command handler. Used by every other package.',
+          deps: ['git','isolation','paths','providers','workflows'] },
+        { id: 'workflows', role: 'core',  files: 53,  lines: 26038, tests: 23, role_label: 'core / runtime',
+          desc: 'DAG executor, YAML loader, Zod schemas, condition evaluator, event emitter, validator. The heart of Archon.',
+          deps: ['git','paths','providers'] },
+        { id: 'providers', role: 'core',  files: 42,  lines: 11307, tests: 16, role_label: 'core / runtime',
+          desc: 'AI provider abstraction. Built-in adapters for Claude Agent SDK and OpenAI Codex; community provider for Pi.',
+          deps: ['paths'] },
+        { id: 'isolation', role: 'infra', files: 15,  lines: 7217,  tests: 6,  role_label: 'infrastructure',
+          desc: 'Pluggable isolation providers (git worktree today; container backends abstracted). Owns worktree copy + PR-state tracking.',
+          deps: ['git','paths'] },
+        { id: 'git',       role: 'infra', files: 7,   lines: 3206,  tests: 1,  role_label: 'infrastructure',
+          desc: 'Thin wrapper around git CLI. Worktree create/remove, repo-path normalisation, branch utilities.',
+          deps: ['paths'] },
+        { id: 'paths',     role: 'infra', files: 17,  lines: 3390,  tests: 8,  role_label: 'infrastructure',
+          desc: 'Path resolution + .env loader + the security-critical strip-cwd-env shim that prevents leaking host env into workflows.',
+          deps: [] },
+        { id: 'adapters',  role: 'integration', files: 41, lines: 9097, tests: 14, role_label: 'integration adapter',
+          desc: 'Chat platforms (Slack, Telegram) + forge platforms (GitHub; community Gitea + GitLab). Translates platform events into core invocations.',
+          deps: ['core','git','isolation','paths'] },
+        { id: 'server',    role: 'app',   files: 25, lines: 10461, tests: 9,  role_label: 'app entry',
+          desc: 'Hono HTTP server with Zod-OpenAPI route definitions, SSE streaming, web adapter and persistence layer.',
+          deps: ['adapters','core','git','paths','providers','workflows'] },
+        { id: 'cli',       role: 'app',   files: 23, lines: 10553, tests: 10, role_label: 'app entry',
+          desc: 'archon CLI: setup wizard, doctor, workflow run, isolation, chat, serve. Bundles defaults via build-time generation.',
+          deps: ['adapters','core','git','isolation','paths','providers','server','workflows'] },
+        { id: 'web',       role: 'app',   files: 101, lines: 19794, tests: 9, role_label: 'app entry',
+          desc: 'Vite + React + Tailwind dashboard. Pages: Chat, Dashboard, Workflows, Workflow Builder (xyflow + dagre), Run, Settings.',
+          deps: [] },
+        { id: 'docs-web',  role: 'docs',  files: 3,  lines: 900,   tests: 0, role_label: 'docs',
+          desc: 'Astro + Starlight site that publishes archon.diy/docs.',
+          deps: [] },
+      ];
+
+      const ROLE_COLORS = {
+        core:        '#7aa2f7',
+        app:         '#bb9af7',
+        infra:       '#9ece6a',
+        integration: '#e0af68',
+        docs:        '#7dcfff',
+      };
+
+      const WORKFLOWS = [
+        { name: 'archon-idea-to-pr',           verb: 'plan → loop-implement → tests → review → approve → PR' },
+        { name: 'archon-fix-github-issue',     verb: 'pull issue, plan, fix, validate, PR back to issue' },
+        { name: 'archon-feature-development',  verb: 'design-doc-driven feature build with phased gates' },
+        { name: 'archon-plan-to-pr',           verb: 'starts from an existing plan markdown and ships it' },
+        { name: 'archon-architect',            verb: 'high-level design exploration, no code changes' },
+        { name: 'archon-assist',               verb: 'free-form helper — bring-your-own prompt, isolated worktree' },
+        { name: 'archon-create-issue',         verb: 'craft and file a well-scoped GitHub issue' },
+        { name: 'archon-comprehensive-pr-review', verb: 'deep multi-pass PR review with fix suggestions' },
+        { name: 'archon-smart-pr-review',      verb: 'lighter PR review focused on high-signal issues' },
+        { name: 'archon-validate-pr',          verb: 'check out a PR, run tests, gate on validation' },
+        { name: 'archon-issue-review-full',    verb: 'triage and analyse an existing issue thread' },
+        { name: 'archon-piv-loop',             verb: 'plan-implement-validate loop — minimal scaffolding' },
+        { name: 'archon-ralph-dag',            verb: 'reference DAG showcasing parallel branches' },
+        { name: 'archon-test-loop-dag',        verb: 'integration-test fixture for the DAG executor' },
+        { name: 'archon-refactor-safely',      verb: 'guarded refactor with tests + approval gate' },
+        { name: 'archon-resolve-conflicts',    verb: 'merge-conflict resolver with explainer commit' },
+        { name: 'archon-interactive-prd',      verb: 'interactive PRD authoring with human in the loop' },
+        { name: 'archon-adversarial-dev',      verb: 'three-role GAN-style: planner / generator / evaluator' },
+        { name: 'archon-remotion-generate',    verb: 'generate Remotion video from a brief (specialised)' },
+        { name: 'archon-workflow-builder',     verb: 'AI-driven authoring of new workflow YAML files' },
+      ];
+
+      const ROUTES = [
+        ['GET','/api/workflows','workflows'],
+        ['POST','/api/workflows/validate','workflows'],
+        ['GET','/api/workflows/{name}','workflows'],
+        ['PUT','/api/workflows/{name}','workflows'],
+        ['DELETE','/api/workflows/{name}','workflows'],
+        ['GET','/api/commands','workflows'],
+        ['GET','/api/conversations','conversations'],
+        ['GET','/api/conversations/{id}','conversations'],
+        ['POST','/api/conversations','conversations'],
+        ['PATCH','/api/conversations/{id}','conversations'],
+        ['DELETE','/api/conversations/{id}','conversations'],
+        ['GET','/api/conversations/{id}/messages','messages'],
+        ['POST','/api/conversations/{id}/message','messages'],
+        ['GET','/api/codebases','codebases'],
+        ['GET','/api/codebases/{id}','codebases'],
+        ['POST','/api/codebases','codebases'],
+        ['DELETE','/api/codebases/{id}','codebases'],
+        ['GET','/api/codebases/{id}/env','env-vars'],
+        ['PUT','/api/codebases/{id}/env','env-vars'],
+        ['DELETE','/api/codebases/{id}/env/{key}','env-vars'],
+        ['POST','/api/workflows/{name}/run','runs'],
+        ['GET','/api/dashboard/runs','runs'],
+        ['GET','/api/workflows/runs/by-worker/{platformId}','runs'],
+        ['GET','/api/workflows/runs','runs'],
+        ['POST','/api/workflows/runs/{runId}/cancel','runs'],
+        ['POST','/api/workflows/runs/{runId}/resume','runs'],
+        ['POST','/api/workflows/runs/{runId}/abandon','runs'],
+        ['POST','/api/workflows/runs/{runId}/approve','runs'],
+        ['POST','/api/workflows/runs/{runId}/reject','runs'],
+        ['DELETE','/api/workflows/runs/{runId}','runs'],
+        ['GET','/api/workflows/runs/{runId}','runs'],
+        ['GET','/api/config','config'],
+        ['PATCH','/api/config/assistants','config'],
+        ['GET','/api/providers','providers'],
+        ['GET','/api/codebases/{id}/environments','isolation'],
+        ['GET','/api/health','health'],
+        ['GET','/api/update-check','health'],
+        ['GET','/api/stream/__dashboard__','SSE — dashboard live'],
+        ['GET','/api/stream/{conversationId}','SSE — conversation live'],
+        ['GET','/api/artifacts/{runId}/*','run artifacts (raw files)'],
+      ];
+
+      const MIGRATIONS = [
+        ['001','initial_schema','core tables: codebases, conversations, messages'],
+        ['002','command_templates','first attempt at storing slash-commands'],
+        ['003','add_worktree','optional worktree column on isolation env'],
+        ['004','worktree_sharing','share a worktree across runs'],
+        ['005','isolation_abstraction','provider-pluggable isolation'],
+        ['006','isolation_environments','dedicated table per isolation env'],
+        ['007','drop_legacy_columns','clean-up after isolation_environments'],
+        ['008','workflow_runs','first-class workflow_runs table'],
+        ['009','workflow_last_activity','heartbeat / last-touched bookkeeping'],
+        ['010','immutable_sessions','sessions become append-only'],
+        ['011','partial_unique_constraint','dedupe runs while allowing replays'],
+        ['012','workflow_events','append-only event log for the timeline UI'],
+        ['013','conversation_titles','user-visible titles for chat threads'],
+        ['014','message_history','per-message history snapshots'],
+        ['015','background_dispatch','flag for fire-and-forget runs'],
+        ['016','session_ended_reason','why a session ended (success / cancelled / error)'],
+        ['017','drop_command_templates','retired command_templates from migration 002'],
+        ['018','fix_workflow_status_default','tighten default status'],
+        ['019','workflow_resume_path','resume-from-step state machine'],
+        ['020','codebase_env_vars','per-codebase env-var allow-list'],
+        ['021','add_allow_env_keys_to_codebases','allow-list lives on the codebase row'],
+      ];
+
+      const EXAMPLE_YAML = `name: archon-idea-to-pr
+description: Plan, implement in a loop until tests pass, get human approval, then PR.
+provider: claude
+model: sonnet
+
+nodes:
+  - id: plan
+    prompt: "Explore the codebase and create an implementation plan."
+
+  - id: implement
+    depends_on: [plan]
+    loop:
+      prompt: "Read the plan. Implement the next task. Run validation."
+      until: ALL_TASKS_COMPLETE
+      fresh_context: true        # fresh AI session each iteration
+
+  - id: run-tests
+    depends_on: [implement]
+    bash: "bun run validate"     # deterministic — no AI
+
+  - id: review
+    depends_on: [run-tests]
+    prompt: "Review all changes against the plan. Fix any issues."
+
+  - id: approve
+    depends_on: [review]
+    loop:
+      prompt: "Present the changes for review. Address any feedback."
+      until: APPROVED
+      interactive: true          # pauses for human input
+
+  - id: create-pr
+    depends_on: [approve]
+    prompt: "Push changes and create a pull request."`;
+
+      // ────────────────────────────  TABS  ────────────────────────────
+      document.querySelectorAll('nav.tabs button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+          btn.classList.add('active');
+          const view = document.getElementById(btn.dataset.tab);
+          view.classList.add('active');
+          if (btn.dataset.tab === 'graph' && !view.dataset.rendered) { renderDepGraph(); view.dataset.rendered = 1; }
+          if (btn.dataset.tab === 'flow' && !view.dataset.rendered)  { renderFlow();      view.dataset.rendered = 1; }
+        });
+      });
+
+      // ────────────────────────────  PACKAGES  ────────────────────────────
+      const pkgGrid = document.getElementById('pkg-grid');
+      PACKAGES.sort((a,b) => b.lines - a.lines).forEach(p => {
+        const el = document.createElement('div');
+        el.className = 'card pkg-card';
+        el.innerHTML = `
+          <div class="name">@archon/${p.id}</div>
+          <div class="desc">${p.desc}</div>
+          <div class="meta">
+            <span style="color:${ROLE_COLORS[p.role]}">● ${p.role_label}</span>
+            <span>📄 ${p.files} files</span>
+            <span>📏 ${p.lines.toLocaleString()} loc</span>
+            <span>🧪 ${p.tests} tests</span>
+          </div>
+          <div style="margin-top:8px;">
+            ${p.deps.length ? p.deps.map(d => `<span class="badge">@archon/${d}</span>`).join('') : '<span class="badge">no internal deps</span>'}
+          </div>`;
+        el.addEventListener('click', () => { document.querySelector('nav.tabs button[data-tab="graph"]').click(); setTimeout(() => highlightPkg(p.id), 100); });
+        pkgGrid.appendChild(el);
+      });
+
+      // ────────────────────────────  WORKFLOWS  ────────────────────────────
+      const wfList = document.getElementById('wf-list');
+      function renderWorkflows(filter = '') {
+        wfList.innerHTML = '';
+        const f = filter.toLowerCase();
+        WORKFLOWS.filter(w => w.name.toLowerCase().includes(f) || w.verb.toLowerCase().includes(f)).forEach(w => {
+          const el = document.createElement('div');
+          el.className = 'wf';
+          el.innerHTML = `<div class="name">${w.name}</div><div class="verb">${w.verb}</div>`;
+          wfList.appendChild(el);
+        });
+      }
+      renderWorkflows();
+      document.getElementById('wf-filter').addEventListener('input', e => renderWorkflows(e.target.value));
+
+      // syntax-highlight YAML
+      function highlightYaml(yaml) {
+        return yaml
+          .replace(/(#[^\n]*)/g, '<span class="c">$1</span>')
+          .replace(/^(\s*-?\s*)([a-z_]+)(:)/gim, '$1<span class="k">$2</span>$3')
+          .replace(/("[^"]*")/g, '<span class="s">$1</span>')
+          .replace(/\b(true|false|null)\b/g, '<span class="n">$1</span>');
+      }
+      document.getElementById('example-yaml').innerHTML = highlightYaml(EXAMPLE_YAML);
+
+      // ────────────────────────────  API TABLE  ────────────────────────────
+      const apiBody = document.querySelector('#api-table tbody');
+      let apiFilter = '', apiMethod = 'ALL';
+      function renderApi() {
+        apiBody.innerHTML = '';
+        const f = apiFilter.toLowerCase();
+        ROUTES.filter(([m,p,r]) => (apiMethod === 'ALL' || m === apiMethod) && (p.toLowerCase().includes(f) || r.toLowerCase().includes(f)))
+              .forEach(([m,p,r]) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="method ${m}">${m}</td><td class="path">${p}</td><td style="color:var(--muted)">${r}</td>`;
+                apiBody.appendChild(tr);
+              });
+      }
+      renderApi();
+      document.getElementById('api-filter').addEventListener('input', e => { apiFilter = e.target.value; renderApi(); });
+      document.querySelectorAll('#api .filter-bar button').forEach(b => b.addEventListener('click', () => {
+        document.querySelectorAll('#api .filter-bar button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active'); apiMethod = b.dataset.method; renderApi();
+      }));
+
+      // ────────────────────────────  MIGRATIONS  ────────────────────────────
+      const migList = document.getElementById('migrations-list');
+      MIGRATIONS.forEach(([n, name, desc]) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<code>${n}</code> <strong>${name}</strong> — <span style="color:var(--muted)">${desc}</span>`;
+        migList.appendChild(li);
+      });
+
+      // ────────────────────────────  ARCH SVG (overview)  ────────────────────────────
+      function renderArch() {
+        const svg = d3.select('#arch-svg');
+        // Simple grouped boxes: triggers → server/cli → workflows runtime → providers → isolation → output
+        const groups = [
+          { x: 30,   y: 30,  w: 200, h: 380, label: 'Triggers',         color: ROLE_COLORS.integration,
+            items: ['CLI (archon …)', 'Web UI', 'Slack adapter', 'Telegram adapter', 'GitHub webhook'] },
+          { x: 260,  y: 30,  w: 200, h: 380, label: 'API surface',       color: ROLE_COLORS.app,
+            items: ['@archon/cli', '@archon/server (Hono)', 'SSE streams', 'OpenAPI spec'] },
+          { x: 490,  y: 30,  w: 200, h: 380, label: 'Workflow runtime',  color: ROLE_COLORS.core,
+            items: ['DAG executor', 'YAML loader', 'Condition evaluator', 'Event emitter', 'Validator'] },
+          { x: 720,  y: 30,  w: 180, h: 180, label: 'AI providers',      color: ROLE_COLORS.core,
+            items: ['Claude SDK', 'OpenAI Codex', 'Pi (community)'] },
+          { x: 720,  y: 230, w: 180, h: 180, label: 'Isolation + git',   color: ROLE_COLORS.infra,
+            items: ['git worktrees', 'PR-state tracker', 'Container providers'] },
+          { x: 930,  y: 30,  w: 150, h: 380, label: 'Persistence',       color: ROLE_COLORS.infra,
+            items: ['SQLite (Bun)', '22 migrations', 'Event log', 'Sessions'] },
+        ];
+
+        groups.forEach(g => {
+          const grp = svg.append('g');
+          grp.append('rect').attr('x', g.x).attr('y', g.y).attr('width', g.w).attr('height', g.h)
+            .attr('rx', 10).attr('fill', '#10141a').attr('stroke', g.color).attr('stroke-width', 1.4);
+          grp.append('text').attr('x', g.x + 12).attr('y', g.y + 22)
+            .attr('fill', g.color).attr('font-size', 13).attr('font-weight', 700).text(g.label);
+          g.items.forEach((item, i) => {
+            grp.append('rect').attr('x', g.x + 12).attr('y', g.y + 38 + i*36).attr('width', g.w - 24).attr('height', 28)
+              .attr('rx', 5).attr('fill', '#0a0d11').attr('stroke', 'rgba(255,255,255,.06)');
+            grp.append('text').attr('x', g.x + 22).attr('y', g.y + 56 + i*36)
+              .attr('fill', '#cdd5e0').attr('font-size', 12).text(item);
+          });
+        });
+
+        // arrows
+        const arrows = [
+          [230,220, 260,220], [460,220, 490,220], [690,120, 720,120], [690,300, 720,300], [900,220, 930,220]
+        ];
+        svg.append('defs').append('marker').attr('id','arrow').attr('viewBox','0 -5 10 10')
+          .attr('refX',10).attr('refY',0).attr('markerWidth',7).attr('markerHeight',7).attr('orient','auto')
+          .append('path').attr('d','M0,-5L10,0L0,5').attr('fill','#7aa2f7');
+        arrows.forEach(([x1,y1,x2,y2]) => {
+          svg.append('line').attr('x1',x1).attr('y1',y1).attr('x2',x2).attr('y2',y2)
+            .attr('stroke','#7aa2f7').attr('stroke-width',1.4).attr('marker-end','url(#arrow)');
+        });
+      }
+      renderArch();
+
+      // ────────────────────────────  DEPENDENCY GRAPH  ────────────────────────────
+      let depSim, depNodeSel, depLinkSel;
+      function renderDepGraph() {
+        const svg = d3.select('#dep-svg');
+        const W = 1100, H = 640;
+        const links = [];
+        PACKAGES.forEach(p => p.deps.forEach(d => links.push({ source: p.id, target: d })));
+        const nodes = PACKAGES.map(p => ({ ...p }));
+
+        svg.append('defs').append('marker').attr('id','depArrow').attr('viewBox','0 -5 10 10')
+          .attr('refX', 32).attr('refY', 0).attr('markerWidth', 7).attr('markerHeight', 7).attr('orient','auto')
+          .append('path').attr('d','M0,-5L10,0L0,5').attr('fill', '#3a4858');
+
+        const g = svg.append('g');
+        const zoom = d3.zoom().scaleExtent([0.4, 3]).on('zoom', e => g.attr('transform', e.transform));
+        svg.call(zoom);
+
+        depSim = d3.forceSimulation(nodes)
+          .force('link', d3.forceLink(links).id(d => d.id).distance(140).strength(0.6))
+          .force('charge', d3.forceManyBody().strength(-700))
+          .force('center', d3.forceCenter(W/2, H/2))
+          .force('collide', d3.forceCollide(60));
+
+        depLinkSel = g.append('g').selectAll('path').data(links).enter().append('path')
+          .attr('class','link').attr('marker-end','url(#depArrow)');
+
+        depNodeSel = g.append('g').selectAll('g').data(nodes).enter().append('g').attr('class','node')
+          .call(d3.drag()
+            .on('start', (e,d) => { if (!e.active) depSim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+            .on('drag',  (e,d) => { d.fx = e.x; d.fy = e.y; })
+            .on('end',   (e,d) => { if (!e.active) depSim.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+        depNodeSel.append('rect')
+          .attr('x', d => -(d.id.length * 4.2 + 22))
+          .attr('y', -16).attr('rx', 18).attr('ry', 18)
+          .attr('width', d => d.id.length * 8.4 + 44).attr('height', 32)
+          .attr('fill', d => ROLE_COLORS[d.role])
+          .attr('fill-opacity', 0.18)
+          .attr('stroke', d => ROLE_COLORS[d.role]);
+
+        depNodeSel.append('text').attr('text-anchor','middle').attr('dy', 4).attr('fill', d => ROLE_COLORS[d.role]).text(d => '@archon/' + d.id);
+
+        const tip = d3.select('#tip');
+        depNodeSel.on('mouseenter', (ev, d) => {
+          tip.html(`<strong>@archon/${d.id}</strong><br>${d.desc}<br><span class="small">${d.files} files · ${d.lines.toLocaleString()} loc · ${d.tests} tests</span>`).style('opacity', 1);
+          depLinkSel.classed('highlight', l => l.source.id === d.id || l.target.id === d.id);
+        }).on('mousemove', ev => tip.style('left', (ev.pageX + 14) + 'px').style('top', (ev.pageY + 14) + 'px'))
+          .on('mouseleave', () => { tip.style('opacity', 0); depLinkSel.classed('highlight', false); });
+
+        depSim.on('tick', () => {
+          depLinkSel.attr('d', d => {
+            const dx = d.target.x - d.source.x, dy = d.target.y - d.source.y;
+            return `M${d.source.x},${d.source.y} L${d.target.x},${d.target.y}`;
+          });
+          depNodeSel.attr('transform', d => `translate(${d.x},${d.y})`);
+        });
+      }
+      function highlightPkg(id) {
+        if (!depNodeSel) return;
+        depLinkSel.classed('highlight', l => l.source.id === id || l.target.id === id);
+        depNodeSel.select('rect').attr('stroke-width', d => d.id === id ? 3 : 1.5);
+      }
+
+      // ────────────────────────────  EXECUTION FLOW  ────────────────────────────
+      function renderFlow() {
+        const svg = d3.select('#flow-svg');
+        const steps = [
+          { x: 60,   y: 60,  label: 'User says "use archon to fix issue #42"',  pkg: 'cli / adapter' },
+          { x: 60,   y: 160, label: 'Trigger ingested',                          pkg: 'cli, adapters' },
+          { x: 60,   y: 260, label: 'Load workflow YAML',                        pkg: 'workflows/loader' },
+          { x: 60,   y: 360, label: 'Validate against Zod schemas',              pkg: 'workflows/validator' },
+          { x: 60,   y: 460, label: 'Persist workflow_run row',                  pkg: 'core/db' },
+
+          { x: 400,  y: 60,  label: 'Resolve isolation backend',                 pkg: 'isolation/factory' },
+          { x: 400,  y: 160, label: 'Create git worktree',                       pkg: 'git, isolation' },
+          { x: 400,  y: 260, label: 'Compute DAG ready set',                     pkg: 'workflows/dag-executor' },
+          { x: 400,  y: 360, label: 'Dispatch each ready node',                  pkg: 'workflows/executor' },
+          { x: 400,  y: 460, label: 'Emit workflow_event rows',                  pkg: 'core/db, SSE' },
+
+          { x: 740,  y: 60,  label: 'AI nodes → providers (Claude/Codex)',       pkg: 'providers' },
+          { x: 740,  y: 160, label: 'Bash nodes → child process',                pkg: 'workflows/executor' },
+          { x: 740,  y: 260, label: 'Loop nodes → re-execute until sentinel',    pkg: 'workflows/dag-executor' },
+          { x: 740,  y: 360, label: 'Approval nodes → pause for human',          pkg: 'server SSE + UI' },
+          { x: 740,  y: 460, label: 'create-pr → forge adapter (GitHub)',        pkg: 'adapters/forge' },
+        ];
+
+        // background lanes
+        ['Setup', 'Scheduling', 'Per-node execution'].forEach((lab, i) => {
+          svg.append('rect').attr('x', 30 + i*340).attr('y', 20).attr('width', 320).attr('height', 500)
+            .attr('rx', 8).attr('fill', '#0d1218').attr('stroke', '#1d2530');
+          svg.append('text').attr('x', 30 + i*340 + 12).attr('y', 14).attr('fill','#8b96a3').attr('font-size', 11).text(lab);
+        });
+
+        steps.forEach(s => {
+          const grp = svg.append('g').attr('transform', `translate(${s.x},${s.y})`);
+          grp.append('rect').attr('width', 280).attr('height', 64).attr('rx', 6)
+            .attr('fill', '#11151a').attr('stroke', '#2a3440');
+          grp.append('text').attr('x', 14).attr('y', 24).attr('fill', '#e6edf3').attr('font-size', 13).attr('font-weight', 600).text(s.label);
+          grp.append('text').attr('x', 14).attr('y', 46).attr('fill', '#8b96a3').attr('font-size', 11).attr('font-family','ui-monospace, monospace').text(s.pkg);
+        });
+
+        svg.append('defs').append('marker').attr('id','flowArrow').attr('viewBox','0 -5 10 10')
+          .attr('refX',8).attr('refY',0).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+          .append('path').attr('d','M0,-5L10,0L0,5').attr('fill','#3a4858');
+
+        // vertical arrows within each lane
+        for (let lane = 0; lane < 3; lane++) {
+          for (let i = 0; i < 4; i++) {
+            const x = 60 + lane*340 + 140;
+            svg.append('line').attr('x1', x).attr('y1', 60 + 64 + i*100)
+              .attr('x2', x).attr('y2', 60 + i*100 + 100)
+              .attr('stroke', '#3a4858').attr('stroke-width', 1.4).attr('marker-end','url(#flowArrow)');
+          }
+        }
+        // horizontal arrows between lanes
+        [[60+280, 60+32, 400-2, 60+32], [60+280, 460+32, 400-2, 460+32], [400+280, 260+32, 740-2, 260+32]].forEach(([x1,y1,x2,y2]) => {
+          svg.append('line').attr('x1',x1).attr('y1',y1).attr('x2',x2).attr('y2',y2)
+            .attr('stroke','#7aa2f7').attr('stroke-width',1.4).attr('marker-end','url(#flowArrow)');
+        });
+      }
+    </script>
+  </body>
+</html>
